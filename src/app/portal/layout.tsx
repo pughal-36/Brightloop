@@ -48,7 +48,12 @@ export default async function PortalLayout({
               <span className="text-[10px] text-muted-foreground mt-0.5">{session.user.email}</span>
             </div>
             <form action={logoutAction}>
-              <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground">
+              <Button
+                type="submit"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+              >
                 <LogOut className="h-3.5 w-3.5 sm:mr-1.5" />
                 <span className="hidden sm:inline">Sign Out</span>
               </Button>
