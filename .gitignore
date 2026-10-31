@@ -1,0 +1,51 @@
+
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+.next/
+
+# Build outputs
+dist/
+build/
+
+# Environment variables and secrets
+.env*
+!.env.example
+
+# Generated Prisma Client
+/src/generated/prisma/
+/app/generated/prisma/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# Testing
+coverage/
+
+# Deployment
+.vercel/
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE settings
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.bak
+git check-ignore -v .env
+git check-ignore -v node_modules
+git check-ignore -v .next
+git check-ignore -v src/generated/prisma
