@@ -12,7 +12,7 @@ Rules:
 - Invoice is created as Draft: lines snapshot product, qty, unit price, tax rate; best discount (06) added as a line; tax computed
   on the discounted base per line; totals; dueDate from payment terms; number from the INV sequence.
 - Housekeeping in the same run: Confirmed -> Active when startDate arrives; autoClose plans close past expiry.
-- Plan price handling: see OPEN-A.
+- Plan price handling: each invoice gets a PLAN_FEE line first (qty 1, unit price = subscription.planFee, tax from planTaxRateBps), then product lines, then the DISCOUNT line.
 - asOfDate defaults to today. Admin can set it to any date for demos (clearly labeled).
 Actions: previewBilling(asOf) (dry run, counts only), runBilling(asOf), listBillingRuns.
 UI: /admin/billing with date picker, Preview, Run, result summary, run history with errors.

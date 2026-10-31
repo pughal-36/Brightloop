@@ -61,7 +61,9 @@ Draft → Confirmed → Paid  (+ Cancelled from Draft/Confirmed)
 
 ## Decisions (final)
 - Payment terms: IMMEDIATE (due on issue), NET_15, NET_30. dueDate = issueDate + terms.
-- Tax exclusive: added on top of the discounted line amount. Rounded half-up per line.
+- Money rates are basis points (e.g. 1800 = 18.00%, 0..10000).
+- APP_TZ = Asia/Kolkata for all "today" calculations.
+- Tax rounds half-up per line (tax exclusive, added on top of the discounted line amount).
 - Billing in advance: the invoice for a period is issued when that period starts.
 - Discounts: only the single best discount (largest amount) applies per invoice.
 - Discount usedCount increments when an invoice is finalized (Confirmed), not when Draft.

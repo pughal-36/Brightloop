@@ -2,11 +2,12 @@
 Purpose: build quotes from templates, run the subscription lifecycle.
 Roles: ADMIN and STAFF manage. CUSTOMER views own and accepts quotations (09).
 Data: QuotationTemplate(name, planId, validityDays), TemplateLine(productId, variantId?, qty).
-  Subscription(number SUB-, customerId, planId, startDate, expiryDate, paymentTerms, status, pausedAt,
+  Subscription(number SUB-, customerId, planId, planFee, planTaxRateBps, startDate, expiryDate, paymentTerms, status, pausedAt,
   nextPeriodStart, quotationSentAt, validUntil, closeReason, createdById).
   SubscriptionLine(productId, variantId?, qty, unitPrice, taxRate, amount) snapshotted.
   StatusHistory(entity, entityId, from, to, byUserId, at, note).
 Rules:
+- Subscription has planFee and planTaxRateBps snapshots taken from the plan at creation.
 - Create from a template: copies plan and lines, validUntil = sentAt + validityDays. Creating from scratch is also allowed.
 - Each line qty >= plan.minQty. Tax defaults from the product, overridable per line. All totals computed server-side.
 - Transitions (single function, writes StatusHistory):
