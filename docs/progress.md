@@ -35,4 +35,29 @@
 - [x] Minimal placeholder pages: `/admin` and `/portal` calling `requireSession()` with logout button and redirect to login
 - [x] Comprehensive unit and integration tests passing in Vitest
 
+## 02 RBAC, Staff, Customers
+- [x] Role guards: requireRole(...roles) used inside every service function
+- [x] Route group layouts: /admin/* allows ADMIN and STAFF, /portal/* only CUSTOMER; wrong role goes to /forbidden, unauthenticated redirects to /login
+- [x] Admin layout with sidebar: Customers, Products, Taxes, Plans, Staff (admin only), Subscriptions, Invoices, Billing, Discounts, Dashboard
+- [x] Staff: admin creates staff (name, email) reusing reset token flow to email set-password link; deactivation immediately revokes sessions and prevents self-deactivation
+- [x] Customers: CRUD by ADMIN/STAFF with search and server-side pagination; customer data scoped by customerId
+- [x] Integration tests for STAFF forbidden from admin services, customer forbidden from admin services, staff deactivation
+
+## 03 Catalog: Products, Variants, Taxes
+- [x] Taxes: CRUD with rateBps (0..10000 basis points), ADMIN write only, STAFF read only, soft deactivation
+- [x] Products: CRUD with types (SERVICE, SOFTWARE, ADD_ON, PHYSICAL, OTHER), salesPrice, costPrice, notes, taxId
+- [x] ProductVariants: unique (productId, attribute, value), extraPrice
+- [x] Price & margin math: effective price = salesPrice + variant.extraPrice, margin = salesPrice - costPrice
+- [x] Data security: costPrice and margin absent from all non-admin / customer-facing responses
+- [x] UI: /admin/products (list, detail with variants and margin), /admin/taxes
+- [x] Integration tests for variant price math, effective pricing, margin, and role guards
+
+## 04 Plans
+- [x] Plans: CRUD with price, billingPeriod (DAILY|WEEKLY|MONTHLY|YEARLY), minQty (>=1), availableFrom, availableTo, taxId
+- [x] Lifecycle flags: autoClose, closable, pausable, renewable
+- [x] Availability window enforcement: isPlanSelectable verifies isActive, availableFrom <= asOfDate <= availableTo
+- [x] UI: /admin/plans with flag toggles, lifecycle rule summaries, and availability window display
+- [x] Reusable DataTable + server-side pagination component used across all admin lists
+- [x] Integration tests for plan flags, window validation, and selectable checks
+
 

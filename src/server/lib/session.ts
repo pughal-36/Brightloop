@@ -131,6 +131,43 @@ export async function requireSession(): Promise<Session> {
 }
 
 /**
+ * Ensures the session user has one of the allowed roles.
+ * Can be called with (session, ...roles) synchronously or (...roles) asynchronously using current request session.
+ * Throws AppError FORBIDDEN (403) if role doesn't match.
+ * Throws AppError UNAUTHENTICATED (401) if no session.
+ */
+export function requireRole(session: Session, ...roles: Role[]): Session;
+export function requireRole(...roles: Role[]): Promise<Session>;
+export function requireRole(
+  sessionOrFirstRole: Session | Role,
+  ...restRoles: Role[]
+): Session | Promise<Session> {
+  if (
+    typeof sessionOrFirstRole === "object" &&
+    sessionOrFirstRole !== null &&
+    "user" in sessionOrFirstRole
+  ) {
+    const session = sessionOrFirstRole as Session;
+    if (!session || !session.user) {
+      throw new AppError("UNAUTHENTICATED", 401, "Authentication required");
+    }
+    if (!restRoles.includes(session.user.role)) {
+      throw new AppError("FORBIDDEN", 403, "Access forbidden");
+    }
+    return session;
+  }
+
+  const roles = [sessionOrFirstRole as Role, ...restRoles];
+  return (async () => {
+    const session = await requireSession();
+    if (!roles.includes(session.user.role)) {
+      throw new AppError("FORBIDDEN", 403, "Access forbidden");
+    }
+    return session;
+  })();
+}
+
+/**
  * Sets the httpOnly, SameSite=Lax, Secure(in production) session cookie.
  */
 export async function setSessionCookie(token: string): Promise<void> {

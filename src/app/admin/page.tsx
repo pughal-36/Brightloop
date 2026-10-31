@@ -1,75 +1,100 @@
-import { Suspense } from "react";
-import { redirect } from "next/navigation";
+import Link from "next/link";
 import { requireSession } from "@/server/lib/session";
-import { logoutAction } from "@/app/actions/auth";
-import { Button } from "@/components/ui/button";
+import { Role } from "@/generated/prisma/enums";
 import {
   Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
+  CardDescription,
+  CardContent,
 } from "@/components/ui/card";
+import { Users, Package, Receipt, Layers, UserCog } from "lucide-react";
 
-async function AdminContent() {
-  let session;
-  try {
-    session = await requireSession();
-  } catch {
-    redirect("/login?returnTo=/admin");
-  }
+export default async function AdminDashboardPage() {
+  const session = await requireSession();
 
   return (
-    <main className="flex min-h-[80vh] items-center justify-center p-6">
-      <Card className="w-full max-w-md text-center shadow-md">
-        <CardHeader className="space-y-2">
-          <div className="mx-auto inline-flex items-center justify-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
-            BrightLoop • Administration
-          </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">
-            Admin Dashboard
-          </CardTitle>
-          <CardDescription>
-            Welcome, {session.user.name}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <p className="text-sm text-muted-foreground">
-            Signed in as <span className="font-medium text-foreground">{session.user.email}</span>
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Role: <span className="font-semibold uppercase">{session.user.role}</span>
-          </p>
-        </CardContent>
-        <CardFooter className="flex justify-center">
-          <form action={logoutAction}>
-            <Button type="submit" variant="outline">
-              Sign Out
-            </Button>
-          </form>
-        </CardFooter>
-      </Card>
-    </main>
-  );
-}
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-sm text-muted-foreground">
+          Welcome back, {session.user.name}. Manage your business operations below.
+        </p>
+      </div>
 
-export default function AdminPage() {
-  return (
-    <Suspense
-      fallback={
-        <main className="flex min-h-[80vh] items-center justify-center p-6">
-          <Card className="w-full max-w-md text-center shadow-md">
-            <CardHeader className="space-y-2">
-              <CardTitle className="text-2xl font-bold tracking-tight">
-                Loading...
-              </CardTitle>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Link href="/admin/customers">
+          <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Customers</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
+            <CardContent>
+              <CardDescription>
+                View and manage client accounts, contacts, and billing addresses.
+              </CardDescription>
+            </CardContent>
           </Card>
-        </main>
-      }
-    >
-      <AdminContent />
-    </Suspense>
+        </Link>
+
+        <Link href="/admin/products">
+          <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Products</CardTitle>
+              <Package className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Manage service offerings, software licenses, physical items, and variants.
+              </CardDescription>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/admin/taxes">
+          <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Taxes</CardTitle>
+              <Receipt className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Define GST and tax rates with basis-point precision.
+              </CardDescription>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/admin/plans">
+          <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Plans</CardTitle>
+              <Layers className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Configure recurring subscription periods and lifecycle flags.
+              </CardDescription>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {session.user.role === Role.ADMIN && (
+          <Link href="/admin/staff">
+            <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Staff Members</CardTitle>
+                <UserCog className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <CardDescription>
+                  Invite staff operators and manage account activations.
+                </CardDescription>
+              </CardContent>
+            </Card>
+          </Link>
+        )}
+      </div>
+    </div>
   );
 }
