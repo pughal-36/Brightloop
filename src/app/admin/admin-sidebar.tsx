@@ -12,8 +12,6 @@ import {
   Layers,
   UserCog,
   FileCheck2,
-  FileText,
-  CreditCard,
   Percent,
 } from "lucide-react";
 
@@ -34,8 +32,6 @@ export function AdminSidebar({ userRole }: AdminSidebarProps) {
       ? [{ name: "Staff", href: "/admin/staff", icon: UserCog }]
       : []),
     { name: "Subscriptions", href: "/admin/subscriptions", icon: FileCheck2 },
-    { name: "Invoices", href: "/admin/invoices", icon: FileText },
-    { name: "Billing", href: "/admin/billing", icon: CreditCard },
     { name: "Discounts", href: "/admin/discounts", icon: Percent },
   ];
 
