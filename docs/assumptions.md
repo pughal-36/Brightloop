@@ -10,5 +10,8 @@
 - Plan availability windows treat dates inclusively from start-of-day on availableFrom through end-of-day on availableTo.
 - Subscription pause/resume advances nextPeriodStart to the earliest period boundary on or after the resume date matching the plan's billing cadence.
 - Discount evaluator evaluateBestDiscount supports both full candidate lists and single candidate queries as a pure in-memory function with no database dependencies.
+- In billing invoice computation, fixed discounts are allocated proportionally across eligible lines by line amount before computing tax on discounted bases.
+- POST /api/cron/billing accepts CRON_SECRET via x-cron-secret header or Bearer authorization token.
+
 
 

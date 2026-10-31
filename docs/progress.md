@@ -78,5 +78,17 @@
 - [x] UI: /admin/discounts list with status badges (ACTIVE, EXPIRED, EXHAUSTED, INACTIVE), usage progress tracking, and creation dialog
 - [x] Tests: unit tests covering date validity, usage exhaustion, thresholds, line scopes, and best-single discount selection; integration tests for discount CRUD and RBAC
 
+## 07 Billing Engine
+- [x] Pure period math in src/server/modules/billing/periods.ts (from startDate + n periods, month-end clipping without drift, daily/weekly/monthly/yearly)
+- [x] Pure invoice computation in src/server/modules/billing/compute.ts (PLAN_FEE line first, product lines, DISCOUNT line, tax calculated per line on discounted base, totals, dueDate from payment terms)
+- [x] Idempotent runBilling(asOfDate) with catch-up, advancing nextPeriodStart, per-subscription transaction using FOR UPDATE SKIP LOCKED
+- [x] UNIQUE(subscriptionId, periodStart) conflict treated as skipped, one failure never halts the batch
+- [x] Housekeeping in the same run: CONFIRMED to ACTIVE at startDate (nextPeriodStart = startDate) and autoClose plans closed past expiry
+- [x] Dry-run previewBilling(asOfDate) returning counts only
+- [x] Admin page at /admin/billing with as-of date picker ("Demo Clock" when DEMO_MODE=true), preview, run, summary card, and run history
+- [x] Protected cron endpoint POST /api/cron/billing with CRON_SECRET header verification
+- [x] Tests: unit tests for periods and compute, integration tests with real DB verifying 0 invoices on re-run, 3-month gap catch-up in order, pause skip, expiry cut-off, month-end start dates, discount tax math, and partial batch failures
+
+
 
 
