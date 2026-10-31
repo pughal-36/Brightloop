@@ -329,3 +329,4 @@ export async function getRecentPaymentsRecord(
     totalPages: Math.ceil(total / pageSize) || 1,
   };
 }
+

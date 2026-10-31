@@ -4,11 +4,12 @@ import { listMySubscriptions } from "@/server/modules/portal";
 import { SubscriptionStatus } from "@/generated/prisma/enums";
 import { formatDate } from "@/lib/dates";
 import { formatINR } from "@/lib/money";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Card,
   CardContent,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -106,8 +107,11 @@ export default async function PortalSubscriptionsPage({ searchParams }: PageProp
               <TableBody>
                 {result.items.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-32 text-center text-xs text-muted-foreground">
-                      No subscriptions found.
+                    <TableCell colSpan={8} className="p-8 text-center">
+                      <EmptyState
+                        title="No subscriptions found"
+                        description="You do not have any active or historical subscriptions in this category."
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -126,18 +130,7 @@ export default async function PortalSubscriptionsPage({ searchParams }: PageProp
                         {formatINR(sub.planFee)}
                       </TableCell>
                       <TableCell className="text-xs">
-                        <Badge
-                          variant={
-                            sub.status === "ACTIVE"
-                              ? "default"
-                              : sub.status === "QUOTATION"
-                              ? "secondary"
-                              : "outline"
-                          }
-                          className="text-[10px]"
-                        >
-                          {sub.status}
-                        </Badge>
+                        <StatusBadge status={sub.status} />
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                         {formatDate(sub.startDate)}

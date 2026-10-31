@@ -124,8 +124,13 @@
 - [x] Demo mode: server render timestamp displayed in layout footer when DEMO_MODE=true
 - [x] Comprehensive test coverage: unit tests for MRR normalization across all plan periods; integration tests verifying IDOR protection, 404 responses, quotation expiry enforcement, staff action guards, and confidential data sanitization
 
-
-
-
-
+## 11 Scale Seed, Perf and Demo
+- [x] Full-scale seed (`SEED_SCALE=full`): 5,000 subscriptions and ~31,000 invoices via batched `createMany` (chunks of 1,000) with fixed Faker seed and deterministic IDs
+- [x] Named demo edge cases: DEMO - Paused Subscription Customer, DEMO - Partially Paid Invoice Customer, DEMO - Overdue Invoice Customer, DEMO - Expiring Flash Sale 20% Off, DEMO - Exhausted VIP Discount
+- [x] Sequence setval: PostgreSQL sequences `subscription_number_seq` and `invoice_number_seq` reset past highest seeded values to prevent numbering collisions
+- [x] Query performance benchmarking (`pnpm perf`): measured 9 critical queries against 5,000 subscriptions and 31,000 invoices; all execute well below 300 ms SLA target (3.81 ms - 151.56 ms) and logged in `docs/perf-results.md`
+- [x] UX pass: accessible Skeleton loaders, EmptyState components with clear next actions, server-side pagination on all lists, field-level errors, disabled submit buttons, sonner toasts
+- [x] Design consistency: strict `formatINR` for paise, consistent `DD MMM YYYY` dates, unified `StatusBadge` variants across admin and portal, confirm dialogs for destructive actions
+- [x] Admin sidebar: active route highlighting and suppression of non-existent links; responsive tablet layout
+- [x] Verification: `pnpm typecheck`, `pnpm lint`, and `pnpm test` (16 test suites, 155 tests) all passing
 

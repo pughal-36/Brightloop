@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -15,6 +14,9 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { formatINR } from "@/lib/money";
+import { formatDate } from "@/lib/dates";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { InvoiceStatus } from "@/generated/prisma/enums";
 import { bulkConfirmAction } from "@/app/actions/invoices";
 import { toast } from "sonner";
@@ -261,8 +263,12 @@ export function InvoicesTableClient({
           <TableBody>
             {invoices.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                  No invoices found matching the current filters.
+                <TableCell colSpan={9} className="p-8 text-center">
+                  <EmptyState
+                    icon={FileText}
+                    title="No invoices found"
+                    description="No invoices match the current filter criteria or search query."
+                  />
                 </TableCell>
               </TableRow>
             ) : (
@@ -297,33 +303,13 @@ export function InvoicesTableClient({
                       </div>
                     </TableCell>
                     <TableCell className="text-xs">
-                      {new Date(inv.issueDate).toISOString().split("T")[0]}
+                      {formatDate(inv.issueDate)}
                     </TableCell>
                     <TableCell className="text-xs">
-                      {new Date(inv.dueDate).toISOString().split("T")[0]}
+                      {formatDate(inv.dueDate)}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        <Badge
-                          variant={
-                            inv.status === InvoiceStatus.PAID
-                              ? "default"
-                              : inv.status === InvoiceStatus.CONFIRMED
-                              ? "secondary"
-                              : inv.status === InvoiceStatus.CANCELLED
-                              ? "outline"
-                              : "outline"
-                          }
-                          className="text-[11px]"
-                        >
-                          {inv.status}
-                        </Badge>
-                        {inv.isOverdue && (
-                          <Badge variant="destructive" className="text-[10px]">
-                            OVERDUE
-                          </Badge>
-                        )}
-                      </div>
+                      <StatusBadge status={inv.status} isOverdue={inv.isOverdue} />
                     </TableCell>
                     <TableCell className="text-right font-medium text-sm">
                       {formatINR(inv.total)}

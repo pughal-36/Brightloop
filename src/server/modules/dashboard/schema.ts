@@ -60,3 +60,4 @@ export interface RecentPaymentRow {
   customerName: string;
   customerId: string;
 }
+

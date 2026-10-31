@@ -16,6 +16,7 @@ import {
   transitionSubscriptionAction,
   deleteDraftSubscriptionAction,
 } from "@/app/actions/subscriptions";
+import { toast } from "sonner";
 import {
   Send,
   CheckCircle2,
@@ -65,14 +66,18 @@ export function SubscriptionActionsClient({
 
       if (!res.success) {
         setError(res.error || "Action failed");
+        toast.error(res.error || "Action failed");
         setLoading(false);
         return;
       }
 
+      toast.success(`Subscription transition (${action}) succeeded`);
       setLoading(false);
       router.refresh();
     } catch (err) {
-      setError((err as Error).message);
+      const msg = (err as Error).message;
+      setError(msg);
+      toast.error(msg);
       setLoading(false);
     }
   };
@@ -85,12 +90,16 @@ export function SubscriptionActionsClient({
       const res = await deleteDraftSubscriptionAction(subscriptionId);
       if (!res.success) {
         setError(res.error || "Failed to delete draft");
+        toast.error(res.error || "Failed to delete draft");
         setLoading(false);
         return;
       }
+      toast.success("Draft subscription deleted");
       router.push("/admin/subscriptions");
     } catch (err) {
-      setError((err as Error).message);
+      const msg = (err as Error).message;
+      setError(msg);
+      toast.error(msg);
       setLoading(false);
     }
   };

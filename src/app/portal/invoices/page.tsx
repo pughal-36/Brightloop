@@ -4,11 +4,12 @@ import { listMyInvoices } from "@/server/modules/portal";
 import { InvoiceStatus } from "@/generated/prisma/enums";
 import { formatDate } from "@/lib/dates";
 import { formatINR } from "@/lib/money";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Card,
   CardContent,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -104,8 +105,11 @@ export default async function PortalInvoicesPage({ searchParams }: PageProps) {
               <TableBody>
                 {result.invoices.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-32 text-center text-xs text-muted-foreground">
-                      No invoices found.
+                    <TableCell colSpan={8} className="p-8 text-center">
+                      <EmptyState
+                        title="No invoices found"
+                        description="You have no billing statements matching this filter."
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -121,25 +125,7 @@ export default async function PortalInvoicesPage({ searchParams }: PageProps) {
                         {formatDate(inv.dueDate)}
                       </TableCell>
                       <TableCell className="text-xs">
-                        <div className="flex items-center gap-1.5">
-                          <Badge
-                            variant={
-                              inv.status === "PAID"
-                                ? "default"
-                                : inv.status === "CONFIRMED"
-                                ? "secondary"
-                                : "outline"
-                            }
-                            className="text-[10px]"
-                          >
-                            {inv.status}
-                          </Badge>
-                          {inv.isOverdue && (
-                            <Badge variant="destructive" className="text-[10px]">
-                              Overdue
-                            </Badge>
-                          )}
-                        </div>
+                        <StatusBadge status={inv.status} isOverdue={inv.isOverdue} />
                       </TableCell>
                       <TableCell className="text-xs font-semibold text-right">
                         {formatINR(inv.total)}

@@ -3,6 +3,8 @@ import { requireSession } from "@/server/lib/session";
 import { listMyPayments } from "@/server/modules/portal";
 import { formatDate } from "@/lib/dates";
 import { formatINR } from "@/lib/money";
+import { EmptyState } from "@/components/ui/empty-state";
+import { CreditCard } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -67,8 +69,12 @@ export default async function PortalPaymentsPage({ searchParams }: PageProps) {
               <TableBody>
                 {result.items.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-32 text-center text-xs text-muted-foreground">
-                      No payment records found.
+                    <TableCell colSpan={6} className="p-8 text-center">
+                      <EmptyState
+                        icon={CreditCard}
+                        title="No payments recorded"
+                        description="You have not made any payments on your account yet."
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (

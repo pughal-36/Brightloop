@@ -26,7 +26,7 @@ export default async function AdminLayout({
   return (
     <div className="flex min-h-screen bg-muted/20">
       {/* Sidebar */}
-      <aside className="w-64 border-r bg-card flex flex-col justify-between shrink-0">
+      <aside className="w-56 lg:w-64 border-r bg-card flex flex-col justify-between shrink-0">
         <div>
           <div className="flex h-14 items-center border-b px-4 gap-2">
             <span className="font-bold text-lg tracking-tight text-primary">

@@ -6,7 +6,8 @@ import * as customerService from "@/server/modules/customers/service";
 import * as catalogService from "@/server/modules/catalog/service";
 import * as planService from "@/server/modules/plans/service";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { formatDate } from "@/lib/dates";
 import {
   CreateSubscriptionDialog,
   CreateQuotationTemplateDialog,
@@ -96,36 +97,18 @@ export default async function SubscriptionsPage({ searchParams }: PageProps) {
     {
       header: "Status",
       accessorKey: "status",
-      cell: (row) => {
-        if (row.status === SubscriptionStatus.DRAFT) {
-          return <Badge variant="outline">DRAFT</Badge>;
-        }
-        if (row.status === SubscriptionStatus.QUOTATION) {
-          return <Badge className="bg-blue-600 hover:bg-blue-700">QUOTATION</Badge>;
-        }
-        if (row.status === SubscriptionStatus.CONFIRMED) {
-          return <Badge className="bg-purple-600 hover:bg-purple-700">CONFIRMED</Badge>;
-        }
-        if (row.status === SubscriptionStatus.ACTIVE) {
-          if (row.pausedAt) {
-            return <Badge className="bg-amber-600 hover:bg-amber-700">PAUSED</Badge>;
-          }
-          return <Badge className="bg-emerald-600 hover:bg-emerald-700">ACTIVE</Badge>;
-        }
-        if (row.status === SubscriptionStatus.CLOSED) {
-          return <Badge variant="secondary">CLOSED</Badge>;
-        }
-        return <Badge variant="outline">{row.status}</Badge>;
-      },
+      cell: (row) => (
+        <StatusBadge status={row.status} isPaused={row.pausedAt !== null} />
+      ),
     },
     {
       header: "Dates",
       accessorKey: "startDate",
       cell: (row) => (
         <div className="text-xs space-y-0.5">
-          <div>Start: {new Date(row.startDate).toLocaleDateString()}</div>
+          <div>Start: {formatDate(row.startDate)}</div>
           <div className="text-muted-foreground">
-            Expiry: {new Date(row.expiryDate).toLocaleDateString()}
+            Expiry: {formatDate(row.expiryDate)}
           </div>
         </div>
       ),

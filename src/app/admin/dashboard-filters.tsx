@@ -129,3 +129,4 @@ export function DashboardFilters({ plans, customers }: FilterProps) {
     </div>
   );
 }
+

@@ -21,3 +21,4 @@ export const listPortalPaymentsSchema = z.object({
 export type ListPortalSubscriptionsInput = z.infer<typeof listPortalSubscriptionsSchema>;
 export type ListPortalInvoicesInput = z.infer<typeof listPortalInvoicesSchema>;
 export type ListPortalPaymentsInput = z.infer<typeof listPortalPaymentsSchema>;
+

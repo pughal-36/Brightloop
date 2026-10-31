@@ -12,7 +12,9 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ChevronLeft, ChevronRight, Search, Inbox } from "lucide-react";
 
 export interface ColumnDef<T> {
   header: React.ReactNode;
@@ -29,11 +31,13 @@ export interface DataTableProps<T> {
   pageSize: number;
   searchPlaceholder?: string;
   emptyMessage?: string;
+  emptyAction?: React.ReactNode;
   actions?: React.ReactNode;
   searchValue?: string;
   onSearch?: (search: string) => void;
   onPageChange?: (newPage: number) => void;
   showSearch?: boolean;
+  loading?: boolean;
 }
 
 export function DataTable<T>({
@@ -44,11 +48,13 @@ export function DataTable<T>({
   pageSize,
   searchPlaceholder = "Search...",
   emptyMessage = "No results found.",
+  emptyAction,
   actions,
   searchValue,
   onSearch,
   onPageChange,
   showSearch = true,
+  loading = false,
 }: DataTableProps<T>) {
   const router = useRouter();
   const pathname = usePathname();
@@ -102,9 +108,10 @@ export function DataTable<T>({
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           {showSearch ? (
             <form onSubmit={handleSearchSubmit} className="relative w-full sm:w-72 flex items-center">
-              <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" aria-hidden="true" />
               <Input
                 type="search"
+                aria-label={searchPlaceholder}
                 placeholder={searchPlaceholder}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -118,7 +125,7 @@ export function DataTable<T>({
         </div>
       )}
 
-      <div className="rounded-md border bg-card">
+      <div className="rounded-md border bg-card overflow-hidden shadow-xs">
         <Table>
           <TableHeader>
             <TableRow>
@@ -130,13 +137,28 @@ export function DataTable<T>({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.length === 0 ? (
+            {loading ? (
+              Array.from({ length: Math.min(pageSize, 5) }).map((_, rIdx) => (
+                <TableRow key={`skeleton-row-${rIdx}`}>
+                  {columns.map((col, cIdx) => (
+                    <TableCell key={`skeleton-col-${cIdx}`} className={col.className}>
+                      <Skeleton className="h-5 w-full" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : data.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-32 text-center text-muted-foreground text-sm"
+                  className="p-8 text-center"
                 >
-                  {emptyMessage}
+                  <EmptyState
+                    icon={Inbox}
+                    title="No records found"
+                    description={emptyMessage}
+                    action={emptyAction}
+                  />
                 </TableCell>
               </TableRow>
             ) : (
@@ -169,22 +191,24 @@ export function DataTable<T>({
           <Button
             variant="outline"
             size="sm"
+            aria-label="Previous page"
             onClick={() => handleNavigate(page - 1)}
-            disabled={page <= 1}
+            disabled={page <= 1 || loading}
             className="h-8 px-2"
           >
-            <ChevronLeft className="h-4 w-4 mr-1" />
+            <ChevronLeft className="h-4 w-4 mr-1" aria-hidden="true" />
             Previous
           </Button>
           <Button
             variant="outline"
             size="sm"
+            aria-label="Next page"
             onClick={() => handleNavigate(page + 1)}
-            disabled={page >= totalPages}
+            disabled={page >= totalPages || loading}
             className="h-8 px-2"
           >
             Next
-            <ChevronRight className="h-4 w-4 ml-1" />
+            <ChevronRight className="h-4 w-4 ml-1" aria-hidden="true" />
           </Button>
         </div>
       </div>

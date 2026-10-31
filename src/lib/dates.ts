@@ -111,9 +111,9 @@ export function formatDate(date: Date | string | null | undefined): string {
   const d = typeof date === "string" ? new Date(date) : date;
   return new Intl.DateTimeFormat("en-IN", {
     timeZone: APP_TZ,
-    year: "numeric",
+    day: "2-digit",
     month: "short",
-    day: "numeric",
+    year: "numeric",
   }).format(d);
 }
 

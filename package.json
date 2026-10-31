@@ -11,7 +11,8 @@
     "test": "vitest run",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "perf": "tsx -r ./scripts/mock-server-only.cjs scripts/perf.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

@@ -124,3 +124,4 @@ export function RevenueChart({ data }: { data: MonthlyRevenue[] }) {
     </div>
   );
 }
+
