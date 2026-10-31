@@ -11,3 +11,494 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+// ───────── Enums ─────────
+enum Role {
+  ADMIN
+  STAFF
+  CUSTOMER
+}
+
+enum BillingPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum ProductType {
+  SERVICE
+  SOFTWARE
+  ADD_ON
+  PHYSICAL
+  OTHER
+}
+
+enum PaymentTerms {
+  IMMEDIATE
+  NET_15
+  NET_30
+}
+
+enum SubscriptionStatus {
+  DRAFT
+  QUOTATION
+  CONFIRMED
+  ACTIVE
+  CLOSED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  CONFIRMED
+  PAID
+  CANCELLED
+}
+
+enum InvoiceLineKind {
+  PRODUCT
+  PLAN_FEE
+  DISCOUNT
+}
+
+enum DiscountType {
+  FIXED
+  PERCENT
+}
+
+enum DiscountScope {
+  PRODUCTS
+  SUBSCRIPTION
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  UPI
+  CARD
+  NETBANKING
+  CASH
+  CHEQUE
+}
+
+enum PaymentProvider {
+  MANUAL
+  RAZORPAY
+}
+
+enum AttemptStatus {
+  CREATED
+  FAILED
+  SUCCEEDED
+}
+
+enum StatusEntity {
+  SUBSCRIPTION
+  INVOICE
+}
+
+// ───────── Identity ─────────
+model User {
+  id             String   @id @default(uuid())
+  email          String   @unique // always stored lowercased
+  name           String
+  passwordHash   String
+  role           Role     @default(CUSTOMER)
+  isActive       Boolean  @default(true)
+  sessionVersion Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  customer    Customer?
+  resetTokens PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+model LoginAttempt {
+  id        String   @id @default(uuid())
+  email     String
+  ip        String
+  success   Boolean
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
+  @@index([ip, createdAt])
+}
+
+model Customer {
+  id             String   @id @default(uuid())
+  name           String
+  email          String
+  phone          String?
+  billingAddress String?
+  isActive       Boolean  @default(true)
+  userId         String?  @unique
+  createdById    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user          User?          @relation(fields: [userId], references: [id])
+  subscriptions Subscription[]
+  invoices      Invoice[]
+
+  @@index([name])
+  @@index([email])
+}
+
+// ───────── Catalog ─────────
+model Tax {
+  id        String  @id @default(uuid())
+  name      String
+  rateBps   Int // 1800 = 18.00%
+  isActive  Boolean @default(true)
+
+  products Product[]
+  plans    Plan[]
+}
+
+model Product {
+  id         String      @id @default(uuid())
+  name       String
+  type       ProductType
+  salesPrice Int // paise
+  costPrice  Int // paise
+  notes      String?
+  taxId      String?
+  isActive   Boolean     @default(true)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  tax              Tax?               @relation(fields: [taxId], references: [id])
+  variants         ProductVariant[]
+  subscriptionLines SubscriptionLine[]
+  templateLines    TemplateLine[]
+  invoiceLines     InvoiceLine[]
+  discountProducts DiscountProduct[]
+
+  @@index([name])
+}
+
+model ProductVariant {
+  id         String @id @default(uuid())
+  productId  String
+  attribute  String // e.g. Brand
+  value      String // e.g. Odoo
+  extraPrice Int // paise, e.g. 56000 for +560 INR
+
+  product           Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+  subscriptionLines SubscriptionLine[]
+  templateLines     TemplateLine[]
+  invoiceLines      InvoiceLine[]
+
+  @@unique([productId, attribute, value])
+}
+
+model Plan {
+  id            String        @id @default(uuid())
+  name          String
+  price         Int // flat plan fee per period, paise
+  billingPeriod BillingPeriod
+  minQty        Int           @default(1)
+  availableFrom DateTime      @db.Date
+  availableTo   DateTime?     @db.Date // null = open ended
+  autoClose     Boolean       @default(false)
+  closable      Boolean       @default(false)
+  pausable      Boolean       @default(false)
+  renewable     Boolean       @default(false)
+  taxId         String? // null = plan fee untaxed
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  tax           Tax?               @relation(fields: [taxId], references: [id])
+  subscriptions Subscription[]
+  templates     QuotationTemplate[]
+}
+
+// ───────── Quoting ─────────
+model QuotationTemplate {
+  id           String  @id @default(uuid())
+  name         String
+  planId       String
+  validityDays Int
+  isActive     Boolean @default(true)
+
+  plan          Plan           @relation(fields: [planId], references: [id])
+  lines         TemplateLine[]
+  subscriptions Subscription[]
+}
+
+model TemplateLine {
+  id         String  @id @default(uuid())
+  templateId String
+  productId  String
+  variantId  String?
+  qty        Int
+
+  template QuotationTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  product  Product           @relation(fields: [productId], references: [id])
+  variant  ProductVariant?   @relation(fields: [variantId], references: [id])
+
+  @@index([templateId])
+}
+
+// ───────── Subscriptions ─────────
+model Subscription {
+  id              String             @id @default(uuid())
+  number          String             @unique @default(dbgenerated("('SUB-'::text || lpad((nextval('subscription_number_seq'::regclass))::text, 6, '0'::text))"))
+  customerId      String
+  planId          String
+  templateId      String?
+  status          SubscriptionStatus @default(DRAFT)
+  startDate       DateTime           @db.Date
+  expiryDate      DateTime           @db.Date
+  paymentTerms    PaymentTerms
+  planFee         Int // snapshot of plan price, paise
+  planTaxRateBps  Int                @default(0) // snapshot
+  pausedAt        DateTime?
+  nextPeriodStart DateTime?          @db.Date // billing cursor
+  quotationSentAt DateTime?
+  validUntil      DateTime?          @db.Date
+  closeReason     String?
+  closedAt        DateTime?
+  createdById     String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  customer Customer           @relation(fields: [customerId], references: [id])
+  plan     Plan               @relation(fields: [planId], references: [id])
+  template QuotationTemplate? @relation(fields: [templateId], references: [id])
+  lines    SubscriptionLine[]
+  invoices Invoice[]
+
+  @@index([status])
+  @@index([customerId])
+  @@index([planId])
+  @@index([status, nextPeriodStart])
+  @@index([createdAt])
+}
+
+model SubscriptionLine {
+  id             String  @id @default(uuid())
+  subscriptionId String
+  productId      String
+  variantId      String?
+  description    String // snapshot: product + variant
+  qty            Int
+  unitPrice      Int // paise, snapshot (base + variant extra)
+  taxRateBps     Int // snapshot
+  amount         Int // qty * unitPrice, pre-tax
+
+  subscription Subscription    @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  product      Product         @relation(fields: [productId], references: [id])
+  variant      ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([subscriptionId])
+}
+
+model StatusHistory {
+  id       String       @id @default(uuid())
+  entity   StatusEntity
+  entityId String
+  from     String?
+  to       String
+  byUserId String?
+  note     String?
+  at       DateTime     @default(now())
+
+  @@index([entity, entityId])
+}
+
+// ───────── Discounts ─────────
+model Discount {
+  id          String        @id @default(uuid())
+  name        String
+  type        DiscountType
+  value       Int // paise if FIXED, basis points if PERCENT
+  minPurchase Int? // pre-tax subtotal, paise
+  minQty      Int?
+  startDate   DateTime      @db.Date
+  endDate     DateTime      @db.Date
+  usageLimit  Int
+  usedCount   Int           @default(0)
+  scope       DiscountScope
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+
+  products     DiscountProduct[]
+  applications DiscountApplication[]
+  invoiceLines InvoiceLine[]
+}
+
+model DiscountProduct {
+  discountId String
+  productId  String
+
+  discount Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id])
+
+  @@id([discountId, productId])
+}
+
+model DiscountApplication { // one row = one counted use, created at invoice confirm
+  id         String   @id @default(uuid())
+  discountId String
+  invoiceId  String   @unique
+  amount     Int
+  createdAt  DateTime @default(now())
+
+  discount Discount @relation(fields: [discountId], references: [id])
+  invoice  Invoice  @relation(fields: [invoiceId], references: [id])
+
+  @@index([discountId])
+}
+
+// ───────── Billing ─────────
+model BillingRun {
+  id          String    @id @default(uuid())
+  asOfDate    DateTime  @db.Date
+  startedById String?
+  startedAt   DateTime  @default(now())
+  finishedAt  DateTime?
+  created     Int       @default(0)
+  skipped     Int       @default(0)
+  failed      Int       @default(0)
+  errors      Json?
+
+  invoices Invoice[]
+}
+
+model Invoice {
+  id             String        @id @default(uuid())
+  number         String        @unique @default(dbgenerated("('INV-'::text || lpad((nextval('invoice_number_seq'::regclass))::text, 6, '0'::text))"))
+  subscriptionId String
+  customerId     String // denormalized for scoping and fast filters
+  billingRunId   String?
+  periodStart    DateTime      @db.Date
+  periodEnd      DateTime      @db.Date
+  status         InvoiceStatus @default(DRAFT)
+  issueDate      DateTime      @db.Date
+  dueDate        DateTime      @db.Date
+  subtotal       Int // pre-tax, before discount
+  discountTotal  Int // positive number
+  taxTotal       Int
+  total          Int
+  amountPaid     Int           @default(0) // cached, updated in same txn as payments
+  sentAt         DateTime?
+  confirmedAt    DateTime?
+  paidAt         DateTime?
+  cancelledAt    DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  subscription        Subscription          @relation(fields: [subscriptionId], references: [id])
+  customer            Customer              @relation(fields: [customerId], references: [id])
+  billingRun          BillingRun?           @relation(fields: [billingRunId], references: [id])
+  lines               InvoiceLine[]
+  payments            Payment[]
+  attempts            PaymentAttempt[]
+  discountApplication DiscountApplication?
+
+  @@unique([subscriptionId, periodStart]) // the idempotency guarantee
+  @@index([status, dueDate])
+  @@index([customerId, status])
+  @@index([issueDate])
+  @@index([billingRunId])
+  @@index([createdAt])
+}
+
+model InvoiceLine {
+  id         String          @id @default(uuid())
+  invoiceId  String
+  kind       InvoiceLineKind
+  sortOrder  Int             @default(0)
+  description String
+  productId  String?
+  variantId  String?
+  discountId String?
+  qty        Int
+  unitPrice  Int
+  taxRateBps Int
+  amount     Int // pre-tax, negative for DISCOUNT
+  taxAmount  Int
+
+  invoice  Invoice         @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product  Product?        @relation(fields: [productId], references: [id])
+  variant  ProductVariant? @relation(fields: [variantId], references: [id])
+  discount Discount?       @relation(fields: [discountId], references: [id])
+
+  @@index([invoiceId])
+}
+
+// ───────── Payments ─────────
+model Payment {
+  id                String          @id @default(uuid())
+  invoiceId         String
+  method            PaymentMethod
+  provider          PaymentProvider @default(MANUAL)
+  amount            Int
+  paidOn            DateTime        @db.Date
+  note              String?
+  recordedById      String?
+  attemptId         String?         @unique
+  razorpayPaymentId String?         @unique
+  voidedAt          DateTime?
+  voidedById        String?
+  voidNote          String?
+  createdAt         DateTime        @default(now())
+
+  invoice Invoice         @relation(fields: [invoiceId], references: [id])
+  attempt PaymentAttempt? @relation(fields: [attemptId], references: [id])
+
+  @@index([invoiceId])
+  @@index([paidOn])
+}
+
+model PaymentAttempt {
+  id                String        @id @default(uuid())
+  invoiceId         String
+  razorpayOrderId   String        @unique
+  razorpayPaymentId String?
+  amount            Int
+  status            AttemptStatus @default(CREATED)
+  failureCode       String?
+  failureReason     String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  invoice Invoice  @relation(fields: [invoiceId], references: [id])
+  payment Payment?
+
+  @@index([invoiceId])
+}
+
+model WebhookEvent {
+  id          String    @id @default(uuid())
+  eventId     String    @unique
+  type        String
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
+}
+
+model AuditLog {
+  id       String   @id @default(uuid())
+  actorId  String?
+  action   String
+  entity   String
+  entityId String?
+  meta     Json?
+  at       DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([at])
+}

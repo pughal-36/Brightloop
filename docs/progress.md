@@ -11,3 +11,7 @@
 - [x] 9. package.json scripts: typecheck, lint, test, db:generate, db:migrate
 - [x] 10. Verification: pnpm typecheck, pnpm lint, pnpm test all pass
 
+## Database Migration
+- [x] Initial schema migration with number sequences (`subscription_number_seq`, `invoice_number_seq`) and check constraints
+- [x] Integration tests for unique constraints, sequential number defaults, and check constraints
+

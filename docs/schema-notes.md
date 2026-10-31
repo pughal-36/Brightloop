@@ -1,14 +1,8 @@
--- 1. Sequences
-CREATE SEQUENCE subscription_number_seq START 1;
-CREATE SEQUENCE invoice_number_seq START 1;
+# Database Schema Notes & Custom Constraints
 
--- 2. Prisma-generated SQL
--- CREATE TABLE ...
--- CREATE INDEX ...
--- CREATE UNIQUE INDEX ...
--- ALTER TABLE ...
+The following custom CHECK constraints must be appended to the initial database migration (`migration.sql`):
 
--- 3. Custom constraints
+```sql
 ALTER TABLE "Discount"
 ADD CONSTRAINT discount_usage_chk
 CHECK ("usedCount" >= 0 AND "usedCount" <= "usageLimit");
@@ -28,3 +22,5 @@ CHECK ("minQty" >= 1);
 ALTER TABLE "Payment"
 ADD CONSTRAINT payment_amount_chk
 CHECK ("amount" > 0);
+```
+
