@@ -45,7 +45,4 @@ Desktop.ini
 # Temporary files
 *.tmp
 *.bak
-git check-ignore -v .env
-git check-ignore -v node_modules
-git check-ignore -v .next
-git check-ignore -v src/generated/prisma
+*.tsbuildinfo

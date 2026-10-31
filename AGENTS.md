@@ -1,9 +1,25 @@
-<!-- BEGIN:nextjs-agent-rules -->
+# BrightLoop rules
+Read docs/domain.md before any task. Read only the spec for the current task (docs/specs/).
 
-## This is NOT the Next.js you know
+## Stack (locked)
+Next.js App Router (src/app), TypeScript strict, Prisma 7 + Postgres (Docker), Zod, Tailwind + shadcn.
+No new dependencies without asking. No backend-as-a-service.
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+## Architecture
+- src/app: routes and UI only. No business logic, no Prisma imports.
+- src/server/modules/<name>/{service,repo,schema}.ts: all logic. Only repo files touch Prisma.
+- src/server files start with `import "server-only"`.
+- Every service function takes the session and checks role. Customer data always scoped by customerId.
+- Validate all input with Zod on the server.
 
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+## Hard rules
+- Money is integer paise, via lib/money.ts. Never floats.
+- Status changes only through the transition functions. Always write status_history.
+- Invoice lines are snapshots. Never recompute a confirmed invoice.
+- Throw AppError(code, status). Errors map to custom error pages and a standard JSON shape.
+- No `any`. No secrets in code. Never log passwords or tokens.
 
-<!-- END:nextjs-agent-rules -->
+## Workflow
+- One module per task. Do not touch unrelated files.
+- Before finishing: pnpm typecheck, pnpm lint, pnpm test must pass.
+- Tick the item in docs/progress.md. If the spec is ambiguous, ask instead of guessing.
