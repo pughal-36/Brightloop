@@ -15,3 +15,11 @@
 - [x] Initial schema migration with number sequences (`subscription_number_seq`, `invoice_number_seq`) and check constraints
 - [x] Integration tests for unique constraints, sequential number defaults, and check constraints
 
+## Base Seed Data
+- [x] Date helper (`src/lib/dates.ts`) with `APP_TZ = "Asia/Kolkata"` and unit tests
+- [x] Configured `prisma.config.ts` seed command (`tsx prisma/seed.ts`) and `pnpm db:seed` script
+- [x] Environment seed credentials validation (never hardcoded, bcrypt cost 12, password policy checks)
+- [x] Idempotent seed script (`prisma/seed.ts`): users (1 ADMIN, 2 STAFF, 1 CUSTOMER), taxes, products (with Odoo variant +560 INR), plans (daily, weekly, monthly with tax, yearly with end date), 2 quotation templates with lines, discounts (percent, fixed, nearly exhausted, expired), and 10 Indian customers via Faker
+- [x] Integration tests for seed idempotency, Odoo variant extraPrice, single ADMIN verification, and bcrypt password hashing
+
+
