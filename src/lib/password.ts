@@ -35,3 +35,4 @@ export const passwordSchema = z
   .refine((val) => /[^A-Za-z0-9]/.test(val), {
     message: "Password must contain at least one special character",
   });
+

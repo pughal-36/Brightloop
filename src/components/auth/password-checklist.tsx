@@ -38,3 +38,4 @@ export function PasswordChecklist({ password }: { password: string }) {
     </div>
   );
 }
+

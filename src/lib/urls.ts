@@ -35,3 +35,4 @@ export function sanitizeReturnTo(returnTo?: string | null): string | null {
 
   return trimmed;
 }
+

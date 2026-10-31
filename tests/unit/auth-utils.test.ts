@@ -71,3 +71,4 @@ describe("returnTo sanitizer", () => {
     expect(sanitizeReturnTo("/invoices/inv-001")).toBe("/invoices/inv-001");
   });
 });
+
