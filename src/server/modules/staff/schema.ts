@@ -20,3 +20,4 @@ export const listStaffSchema = z.object({
 });
 
 export type ListStaffInput = z.infer<typeof listStaffSchema>;
+

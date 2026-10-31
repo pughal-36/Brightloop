@@ -26,3 +26,4 @@ export const listCustomersSchema = z.object({
 });
 
 export type ListCustomersInput = z.infer<typeof listCustomersSchema>;
+

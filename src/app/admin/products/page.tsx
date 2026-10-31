@@ -165,3 +165,4 @@ export default async function ProductsPage({ searchParams }: PageProps) {
     </div>
   );
 }
+
