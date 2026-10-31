@@ -23,3 +23,15 @@ No new dependencies without asking. No backend-as-a-service.
 - One module per task. Do not touch unrelated files.
 - Before finishing: pnpm typecheck, pnpm lint, pnpm test must pass.
 - Tick the item in docs/progress.md. If the spec is ambiguous, ask instead of guessing.
+
+## Speed mode (autonomous)
+- Do not ask questions. If something is ambiguous, pick the simplest option consistent with docs/domain.md, and log it
+  in docs/assumptions.md (one line each).
+- Errors: one fix attempt per failure. If it still fails, remove that sub-feature, log it in docs/known-issues.md, and move on.
+  Never loop. Never commit with a failing typecheck.
+- Never run: prisma migrate reset, git reset --hard, git push, git clean, rm -rf outside node_modules/.next, or anything that
+  drops data. Never edit or delete existing migrations. Schema changes need a NEW migration, logged in docs/assumptions.md.
+- Raw SQL: table and column names are camelCase and must be double-quoted. Sum() returns BigInt: convert at the repo boundary.
+- Every new env key goes into src/server/env.ts and .env.example. Never read process.env elsewhere.
+- Commit once at the end of each task with the message I give. Tick docs/progress.md.
+- UI: plain shadcn, consistent, server-side pagination on every list. Do not spend time on visual polish.

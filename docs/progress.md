@@ -22,4 +22,17 @@
 - [x] Idempotent seed script (`prisma/seed.ts`): users (1 ADMIN, 2 STAFF, 1 CUSTOMER), taxes, products (with Odoo variant +560 INR), plans (daily, weekly, monthly with tax, yearly with end date), 2 quotation templates with lines, discounts (percent, fixed, nearly exhausted, expired), and 10 Indian customers via Faker
 - [x] Integration tests for seed idempotency, Odoo variant extraPrice, single ADMIN verification, and bcrypt password hashing
 
+## 01 Authentication
+- [x] Password policy: shared Zod schema (min 9 chars, upper, lower, special) & live checklist function in `src/lib/password.ts`
+- [x] Signup: creates User (role CUSTOMER) + linked Customer in one transaction, lowercased email, duplicate conflict check, bcryptjs cost 12
+- [x] Login: timing attack protection with cost 12 dummy hash, identical generic error for unknown/wrong/inactive, LoginAttempt recording, 15-minute lockout on 6th failed attempt per email+IP
+- [x] Session: JWT via jose (HS256, AUTH_SECRET, 7 days) in httpOnly/SameSite=Lax cookie, request-memoized `getSession()`, `requireSession()`, session versioning
+- [x] Password reset: 3 requests/hour limit, 32-byte base64url token stored as sha256, single-use, 30-min expiry, increments `sessionVersion` to invalidate existing sessions
+- [x] Email interface: `src/server/lib/email.ts` logging reset links in development without logging passwords
+- [x] ReturnTo sanitizer & role-based routing: rejects protocol/scheme and open redirects (`//evil.com`, `https://evil.com`, `javascript:`)
+- [x] Security headers in `next.config.ts` (nosniff, strict-origin-when-cross-origin, DENY, camera/mic/geo off, HSTS in production)
+- [x] UI with shadcn: `/signup`, `/login`, `/forgot-password`, `/reset-password` with live password checklist, loading states, field errors, distinct invalid/expired token state, locked state
+- [x] Minimal placeholder pages: `/admin` and `/portal` calling `requireSession()` with logout button and redirect to login
+- [x] Comprehensive unit and integration tests passing in Vitest
+
 
