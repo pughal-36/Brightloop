@@ -60,4 +60,23 @@
 - [x] Reusable DataTable + server-side pagination component used across all admin lists
 - [x] Integration tests for plan flags, window validation, and selectable checks
 
+## 05 Quotation Templates & Subscriptions
+- [x] Quotation templates: admin CRUD with template lines and selectable products/variants
+- [x] Subscriptions creation: create blank or from template with plan fee and planTaxRateBps snapshots, auto-generated SUB- number from Postgres sequence default
+- [x] Line editor with server-computed totals snapshotting effective unit price (salesPrice + variant extraPrice) and tax rate bps
+- [x] Central transition function `transitionSubscription` enforcing the full transition state machine and plan flags (`closable`, `pausable`, `renewable`)
+- [x] Status history tracking: immutable StatusHistory records written on every state transition
+- [x] Subscription actions: send quotation (immutable once sent), confirm, activate, pause, resume (recalculates nextPeriodStart to first period start on/after resume date), renew (extends expiry by one billing period), close with required reason, and delete (DRAFT only)
+- [x] UI: /admin/subscriptions list with filters, pagination, and creation dialogs (blank or from template); /admin/subscriptions/[id] detail page with line snapshots, totals, action triggers, and chronological StatusHistory timeline
+- [x] Tests: comprehensive integration tests covering legal & illegal transitions, flag enforcement, draft editing/deletion, and timeline logging
+
+## 06 Discounts
+- [x] Discounts CRUD: admin management with scope (SUBSCRIPTION, PRODUCTS), type (PERCENTAGE, FIXED), thresholds (minPurchasePaise, minQuantity), and usage limits
+- [x] Pure evaluation function: `evaluateBestDiscount(subscriptionLines, planFee, date, candidateDiscounts)` with zero database access
+- [x] Scope evaluation rules: PRODUCTS applies only to matching products; SUBSCRIPTION applies to eligible lines + plan fee
+- [x] Discount limits and caps: percentage calculations, fixed discount capped at eligible base amount, and best-of-many selection
+- [x] UI: /admin/discounts list with status badges (ACTIVE, EXPIRED, EXHAUSTED, INACTIVE), usage progress tracking, and creation dialog
+- [x] Tests: unit tests covering date validity, usage exhaustion, thresholds, line scopes, and best-single discount selection; integration tests for discount CRUD and RBAC
+
+
 

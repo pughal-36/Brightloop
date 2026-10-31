@@ -8,4 +8,7 @@
 - Customer management is accessible by both ADMIN and STAFF, with individual customer records scoped by customerId for customer portal requests.
 - Catalog costPrice and product margin calculations are stripped from all non-ADMIN responses to protect financial margins.
 - Plan availability windows treat dates inclusively from start-of-day on availableFrom through end-of-day on availableTo.
+- Subscription pause/resume advances nextPeriodStart to the earliest period boundary on or after the resume date matching the plan's billing cadence.
+- Discount evaluator evaluateBestDiscount supports both full candidate lists and single candidate queries as a pure in-memory function with no database dependencies.
+
 
