@@ -15,6 +15,7 @@
 - Invoice overdue status is strictly derived at query time based on CONFIRMED status, dueDate < today, and amountPaid < total.
 - Discount usage increment at invoice confirmation uses atomic conditional SQL update to prevent race conditions exceeding usageLimit.
 - Bulk invoice confirmation isolates failures and skips invoices that transition to RECONFIRM_REQUIRED, returning them in a structured list.
+- Added indexes Invoice(customerId) and Subscription(nextPeriodStart) via migration 20261031111719_add_spec_10_indexes as specified in spec 10.
 
 
 

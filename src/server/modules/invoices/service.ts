@@ -43,7 +43,7 @@ export async function getInvoice(session: Session, id: string) {
 
   if (session.user.role === Role.CUSTOMER) {
     if (invoice.customerId !== session.user.customerId) {
-      throw new AppError("FORBIDDEN", 403, "Access to this invoice is forbidden");
+      throw new AppError("NOT_FOUND", 404, "Invoice not found");
     }
   }
 
@@ -54,11 +54,29 @@ export async function getInvoice(session: Session, id: string) {
     invoice.dueDate < todayDate &&
     balance > 0;
 
-  return {
+  const result = {
     ...invoice,
     balance,
     isOverdue,
   };
+
+  if (session.user.role === Role.CUSTOMER) {
+    return {
+      ...result,
+      lines: result.lines.map((line) => ({
+        ...line,
+        product: line.product
+          ? {
+              ...line.product,
+              costPrice: undefined,
+              notes: null,
+            }
+          : line.product,
+      })),
+    };
+  }
+
+  return result;
 }
 
 /**
@@ -224,10 +242,17 @@ export async function getInvoiceTimeline(session: Session, id: string) {
   if (session.user.role === Role.CUSTOMER) {
     const invoice = await findInvoiceByIdRecord(id);
     if (!invoice || invoice.customerId !== session.user.customerId) {
-      throw new AppError("FORBIDDEN", 403, "Access forbidden");
+      throw new AppError("NOT_FOUND", 404, "Invoice not found");
     }
   }
 
-  return getInvoiceTimelineRecord(id);
+  const timeline = await getInvoiceTimelineRecord(id);
+  if (session.user.role === Role.CUSTOMER) {
+    return timeline.map((entry) => ({
+      ...entry,
+      byUserId: null,
+    }));
+  }
+  return timeline;
 }
 

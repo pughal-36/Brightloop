@@ -102,6 +102,29 @@
 - [x] StatusHistory tracking: records transition history on confirm, payment, void, and cancellation
 - [x] Tests: partial then full payment flips to PAID, overpayment rejected, payments blocked on DRAFT, exhausted discount returns RECONFIRM_REQUIRED, concurrent confirms never exceed usageLimit, cancel releases discount use
 
+## 09 Customer Portal
+- [x] Portal layout and navigation: responsive top bar with My Subscriptions, My Invoices, Payment History, session user display, and sign out
+- [x] Scoped queries: strict customerId scoping across subscriptions, invoices, and payments, returning NOT_FOUND (404) for another customer's record to prevent enumeration/IDOR
+- [x] Portal dashboard: active subscriptions count, pending quotations, total amount due, and conditional overdue alert banner with count and amount
+- [x] Subscriptions view: status filter tabs, server-side pagination, line items snapshot (sanitized costPrice and internal notes), and StatusHistory timeline (sanitized staff IDs)
+- [x] Quotation acceptance: customer action to confirm quotation before validUntil; rejects acceptance after expiry date with CONFLICT (409)
+- [x] Role restrictions: customer sessions blocked from pause, close, renew, and activate with FORBIDDEN (403)
+- [x] Invoices & printing: view invoice details, line items snapshot, status badges (with Overdue indicator), disabled "Pay now" button, and print preview page
+- [x] Payment history: server-side paginated list of non-voided payments scoped to the authenticated customer
+
+## 10 Dashboard and Reports
+- [x] Database indexes: added explicit indexes on Invoice(customerId) and Subscription(nextPeriodStart) via migration 20261031111719_add_spec_10_indexes
+- [x] KPI strip: active subscriptions (with paused counted separately), MRR (normalized monthly run-rate), ARR (MRR x 12), revenue collected, outstanding balance, overdue count and amount
+- [x] SQL aggregation: pure SQL aggregate queries with camelCase double-quoted identifiers, BigInt conversions at repo boundary, and zero full table loads into JS
+- [x] MRR normalization: pure helper and SQL calculation for YEARLY (/ 12), WEEKLY (* 52 / 12), DAILY (* 365 / 12), and MONTHLY plans
+- [x] Revenue by month chart: pure SVG bar chart with grid lines, month labels, hover values, and responsive container without external charting libraries
+- [x] Subscriptions by status: breakdown card showing counts and paused sub-counts across all lifecycle states
+- [x] Detail tables: overdue invoices table and recent payments table with server-side pagination and direct invoice links
+- [x] Filtering: date range, plan, customer, and status filter bar with query parameter synchronization and reset
+- [x] Demo mode: server render timestamp displayed in layout footer when DEMO_MODE=true
+- [x] Comprehensive test coverage: unit tests for MRR normalization across all plan periods; integration tests verifying IDOR protection, 404 responses, quotation expiry enforcement, staff action guards, and confidential data sanitization
+
+
 
 
 

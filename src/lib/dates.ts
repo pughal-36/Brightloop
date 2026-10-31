@@ -103,3 +103,17 @@ export function getNextPeriodStartOnOrAfter(
   return cursor;
 }
 
+/**
+ * Formats a Date into standard readable string in Asia/Kolkata timezone.
+ */
+export function formatDate(date: Date | string | null | undefined): string {
+  if (!date) return "—";
+  const d = typeof date === "string" ? new Date(date) : date;
+  return new Intl.DateTimeFormat("en-IN", {
+    timeZone: APP_TZ,
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(d);
+}
+

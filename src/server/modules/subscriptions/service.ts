@@ -445,7 +445,7 @@ export async function transitionSubscription(session: Session, rawInput: unknown
     // Staff/admin can confirm, customer can accept their own quotation
     if (session.user.role === Role.CUSTOMER) {
       if (subscription.customerId !== session.user.customerId) {
-        throw new AppError("FORBIDDEN", 403, "You can only accept your own quotations");
+        throw new AppError("NOT_FOUND", 404, "Subscription not found");
       }
     } else {
       requireRole(session, Role.ADMIN, Role.STAFF);
@@ -717,8 +717,23 @@ export async function getSubscription(session: Session, id: string) {
 
   if (session.user.role === Role.CUSTOMER) {
     if (subscription.customerId !== session.user.customerId) {
-      throw new AppError("FORBIDDEN", 403, "Access to subscription forbidden");
+      throw new AppError("NOT_FOUND", 404, "Subscription not found");
     }
+    const sanitized = {
+      ...subscription,
+      createdById: null,
+      lines: subscription.lines.map((line) => ({
+        ...line,
+        product: line.product
+          ? {
+              ...line.product,
+              costPrice: undefined,
+              notes: null,
+            }
+          : line.product,
+      })),
+    };
+    return sanitized;
   } else {
     requireRole(session, Role.ADMIN, Role.STAFF);
   }
@@ -751,6 +766,13 @@ export async function listSubscriptions(session: Session, rawInput?: unknown) {
 export async function getSubscriptionTimeline(session: Session, id: string) {
   // Check access to subscription first
   await getSubscription(session, id);
-  return findStatusHistoryByEntity(StatusEntity.SUBSCRIPTION, id);
+  const timeline = await findStatusHistoryByEntity(StatusEntity.SUBSCRIPTION, id);
+  if (session.user.role === Role.CUSTOMER) {
+    return timeline.map((entry) => ({
+      ...entry,
+      byUserId: null,
+    }));
+  }
+  return timeline;
 }
 

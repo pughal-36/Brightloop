@@ -6,6 +6,7 @@ import { AdminSidebar } from "./admin-sidebar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LogOut } from "lucide-react";
+import { env } from "@/server/env";
 
 export default async function AdminLayout({
   children,
@@ -72,8 +73,13 @@ export default async function AdminLayout({
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="container mx-auto p-6 max-w-7xl">{children}</div>
+      <main className="flex-1 flex flex-col overflow-y-auto">
+        <div className="container mx-auto p-6 max-w-7xl flex-1">{children}</div>
+        {env.DEMO_MODE && (
+          <footer className="border-t py-2 px-6 text-center text-xs text-muted-foreground font-mono bg-muted/30">
+            DEMO_MODE • Server Render Time: {new Date().toISOString()} (Asia/Kolkata)
+          </footer>
+        )}
       </main>
     </div>
   );

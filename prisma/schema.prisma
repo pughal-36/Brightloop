@@ -285,6 +285,7 @@ model Subscription {
   @@index([customerId])
   @@index([planId])
   @@index([status, nextPeriodStart])
+  @@index([nextPeriodStart])
   @@index([createdAt])
 }
 
@@ -411,6 +412,7 @@ model Invoice {
 
   @@unique([subscriptionId, periodStart]) // the idempotency guarantee
   @@index([status, dueDate])
+  @@index([customerId])
   @@index([customerId, status])
   @@index([issueDate])
   @@index([billingRunId])
