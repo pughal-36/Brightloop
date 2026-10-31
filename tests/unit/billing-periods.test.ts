@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { BillingPeriod } from "@/generated/prisma/enums";
 import {
+  computeNthPeriodStart,
   computePeriodSpan,
   findPeriodIndex,
   getMissedPeriods,
@@ -75,4 +76,3 @@ describe("Billing Periods Pure Calculations", () => {
     expect(spans[2].periodStart.toISOString().slice(0, 10)).toBe("2026-03-01");
   });
 });
-

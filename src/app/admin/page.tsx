@@ -8,7 +8,7 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
-import { Users, Package, Receipt, Layers, UserCog, FileCheck2, Percent, CreditCard } from "lucide-react";
+import { Users, Package, Receipt, Layers, UserCog, FileCheck2, Percent, CreditCard, FileText } from "lucide-react";
 
 export default async function AdminDashboardPage() {
   const session = await requireSession();
@@ -88,6 +88,20 @@ export default async function AdminDashboardPage() {
             <CardContent>
               <CardDescription>
                 Manage quotations, recurring subscriptions, and status lifecycles.
+              </CardDescription>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/admin/invoices">
+          <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Invoices</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Track statements, confirm billing, record manual payments, and audit overdue balances.
               </CardDescription>
             </CardContent>
           </Card>

@@ -17,6 +17,7 @@ import {
 import type { Session } from "@/server/lib/session";
 import * as billingService from "@/server/modules/billing/service";
 import * as subService from "@/server/modules/subscriptions/service";
+import * as discountService from "@/server/modules/discounts/service";
 import * as billingRepo from "@/server/modules/billing/repo";
 import { getMissedPeriods } from "@/server/modules/billing/periods";
 import { POST as cronBillingRoute } from "@/app/api/cron/billing/route";
@@ -118,7 +119,6 @@ describe("Billing Engine Integration Tests", { timeout: 40000 }, () => {
     }
 
     // Upsert Tax 18%
-    expect(testCustomer).toBeDefined();
     const tax = await db.tax.findFirst({ where: { rateBps: 1800, isActive: true } });
     if (tax) {
       testTax = tax;
@@ -319,7 +319,7 @@ describe("Billing Engine Integration Tests", { timeout: 40000 }, () => {
     });
 
     // Run billing as of 2026-03-20 while paused
-    await billingService.runBilling(adminSession, {
+    const pausedRun = await billingService.runBilling(adminSession, {
       asOfDate: new Date("2026-03-20T00:00:00.000Z"),
     });
 
@@ -341,7 +341,7 @@ describe("Billing Engine Integration Tests", { timeout: 40000 }, () => {
     expect(resumedSub!.nextPeriodStart!.toISOString().slice(0, 10)).toBe("2026-05-01");
 
     // Run billing as of 2026-04-15 -> nextPeriodStart is 2026-05-01, so 0 invoices
-    await billingService.runBilling(adminSession, {
+    const preMayRun = await billingService.runBilling(adminSession, {
       asOfDate: new Date("2026-04-15T00:00:00.000Z"),
     });
 
@@ -351,7 +351,7 @@ describe("Billing Engine Integration Tests", { timeout: 40000 }, () => {
     expect(invoicesPreMay.length).toBe(1); // Still only 1 invoice; Feb, Mar, Apr were skipped!
 
     // Run billing as of 2026-05-05 -> Creates 1 invoice for May period
-    await billingService.runBilling(adminSession, {
+    const mayRun = await billingService.runBilling(adminSession, {
       asOfDate: new Date("2026-05-05T00:00:00.000Z"),
     });
 

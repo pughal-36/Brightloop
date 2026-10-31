@@ -14,6 +14,7 @@ import {
   FileCheck2,
   Percent,
   CreditCard,
+  FileText,
 } from "lucide-react";
 
 interface AdminSidebarProps {
@@ -33,6 +34,7 @@ export function AdminSidebar({ userRole }: AdminSidebarProps) {
       ? [{ name: "Staff", href: "/admin/staff", icon: UserCog }]
       : []),
     { name: "Subscriptions", href: "/admin/subscriptions", icon: FileCheck2 },
+    { name: "Invoices", href: "/admin/invoices", icon: FileText },
     { name: "Billing", href: "/admin/billing", icon: CreditCard },
     { name: "Discounts", href: "/admin/discounts", icon: Percent },
   ];

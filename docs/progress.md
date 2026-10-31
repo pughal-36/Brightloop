@@ -89,6 +89,20 @@
 - [x] Protected cron endpoint POST /api/cron/billing with CRON_SECRET header verification
 - [x] Tests: unit tests for periods and compute, integration tests with real DB verifying 0 invoices on re-run, 3-month gap catch-up in order, pause skip, expiry cut-off, month-end start dates, discount tax math, and partial batch failures
 
+## 08 Invoices & Payments (Lifecycle & Manual Payments)
+- [x] Invoices listing: server-side pagination, search, status filter, and derived quick tabs (All, Outstanding, Overdue, Draft, Paid)
+- [x] Derived metrics: Overdue is dynamically calculated (CONFIRMED, dueDate < today, balance > 0) and never stored
+- [x] Single & bulk confirmation: freezes invoice lines, atomically checks and increments discount usage (UPDATE ... WHERE usedCount < usageLimit), creates DiscountApplication
+- [x] RECONFIRM_REQUIRED flow: if discount is exhausted/invalid, removes discount line, recalculates line taxes and invoice totals, keeps in DRAFT, returns old and new totals (bulk confirm skips and lists them)
+- [x] Invoice cancellation: cancels DRAFT or unpaid CONFIRMED invoices, atomically releases discount usage (decrements usedCount and deletes DiscountApplication)
+- [x] Manual payments: records payment with PaymentMethod enum (provider MANUAL, amount > 0 and <= balance) on CONFIRMED invoices only, updates amountPaid in same transaction, flips status to PAID when balance is 0
+- [x] Payment voiding: ADMIN only, requires void note, recalculates active payments, reverts invoice status from PAID to CONFIRMED if balance > 0
+- [x] Send invoice: emails invoice statement summary to customer and records sentAt
+- [x] Print page: standalone clean print layout at /admin/invoices/[id]/print with print-specific stylesheet
+- [x] StatusHistory tracking: records transition history on confirm, payment, void, and cancellation
+- [x] Tests: partial then full payment flips to PAID, overpayment rejected, payments blocked on DRAFT, exhausted discount returns RECONFIRM_REQUIRED, concurrent confirms never exceed usageLimit, cancel releases discount use
+
+
 
 
 
