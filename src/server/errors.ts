@@ -7,6 +7,7 @@ export const ErrorCodes = {
   VALIDATION: "VALIDATION",
   CONFLICT: "CONFLICT",
   INTERNAL: "INTERNAL",
+  DATABASE_UNAVAILABLE: "DATABASE_UNAVAILABLE",
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
@@ -18,6 +19,7 @@ export const DEFAULT_STATUS_MAP: Record<ErrorCode, number> = {
   VALIDATION: 422,
   CONFLICT: 409,
   INTERNAL: 500,
+  DATABASE_UNAVAILABLE: 503,
 };
 
 const DEFAULT_MESSAGES: Record<ErrorCode, string> = {
@@ -27,6 +29,7 @@ const DEFAULT_MESSAGES: Record<ErrorCode, string> = {
   VALIDATION: "Validation failed",
   CONFLICT: "Resource conflict",
   INTERNAL: "Internal server error",
+  DATABASE_UNAVAILABLE: "Database is currently unavailable",
 };
 
 class AppErrorClass extends Error {
@@ -60,6 +63,7 @@ export const AppError = function (
   new (code: ErrorCode, status?: number, message?: string): AppErrorClass;
   (code: ErrorCode, status?: number, message?: string): AppErrorClass;
 };
+AppError.prototype = AppErrorClass.prototype;
 
 export interface StandardErrorResponse {
   error: {
