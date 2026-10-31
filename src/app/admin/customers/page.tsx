@@ -1,25 +1,14 @@
 import { requireSession } from "@/server/lib/session";
 import { Role } from "@/generated/prisma/enums";
 import * as customerService from "@/server/modules/customers/service";
-import { DataTable, type ColumnDef } from "@/components/ui/data-table";
-import { Badge } from "@/components/ui/badge";
-import { AddCustomerDialog, EditCustomerDialog } from "./customer-dialogs";
+import { CustomersTable } from "./customers-table";
+import { AddCustomerDialog } from "./customer-dialogs";
 
 interface PageProps {
   searchParams: Promise<{
     search?: string;
     page?: string;
   }>;
-}
-
-interface CustomerRow {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string | null;
-  billingAddress?: string | null;
-  isActive: boolean;
-  createdAt: Date;
 }
 
 export default async function CustomersPage({ searchParams }: PageProps) {
@@ -40,63 +29,6 @@ export default async function CustomersPage({ searchParams }: PageProps) {
     pageSize,
   });
 
-  const columns: ColumnDef<CustomerRow>[] = [
-    {
-      header: "Customer",
-      accessorKey: "name",
-      cell: (row) => (
-        <div>
-          <div className="font-medium text-foreground">{row.name}</div>
-          <div className="text-xs text-muted-foreground">{row.email}</div>
-        </div>
-      ),
-    },
-    {
-      header: "Phone",
-      accessorKey: "phone",
-      cell: (row) => (
-        <span className="text-sm text-muted-foreground">
-          {row.phone || "—"}
-        </span>
-      ),
-    },
-    {
-      header: "Billing Address",
-      accessorKey: "billingAddress",
-      cell: (row) => (
-        <span className="text-xs text-muted-foreground line-clamp-1 max-w-xs">
-          {row.billingAddress || "—"}
-        </span>
-      ),
-    },
-    {
-      header: "Status",
-      accessorKey: "isActive",
-      cell: (row) => (
-        <Badge
-          variant={row.isActive ? "outline" : "destructive"}
-          className="text-xs"
-        >
-          {row.isActive ? "Active" : "Inactive"}
-        </Badge>
-      ),
-    },
-    {
-      header: "Created",
-      accessorKey: "createdAt",
-      cell: (row) => (
-        <span className="text-xs text-muted-foreground">
-          {new Date(row.createdAt).toLocaleDateString()}
-        </span>
-      ),
-    },
-    {
-      header: "Actions",
-      cell: (row) => <EditCustomerDialog customer={row} />,
-      className: "text-right",
-    },
-  ];
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -109,16 +41,12 @@ export default async function CustomersPage({ searchParams }: PageProps) {
         <AddCustomerDialog />
       </div>
 
-      <DataTable
-        columns={columns}
+      <CustomersTable
         data={result.items}
         total={result.total}
         page={result.page}
         pageSize={result.pageSize}
-        searchPlaceholder="Search customers by name, email or phone..."
-        emptyMessage="No customers found."
       />
     </div>
   );
 }
-

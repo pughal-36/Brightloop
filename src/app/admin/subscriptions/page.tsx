@@ -1,13 +1,10 @@
-import Link from "next/link";
 import { requireSession } from "@/server/lib/session";
 import { Role, SubscriptionStatus } from "@/generated/prisma/enums";
 import * as subService from "@/server/modules/subscriptions/service";
 import * as customerService from "@/server/modules/customers/service";
 import * as catalogService from "@/server/modules/catalog/service";
 import * as planService from "@/server/modules/plans/service";
-import { DataTable, type ColumnDef } from "@/components/ui/data-table";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { formatDate } from "@/lib/dates";
+import { SubscriptionsTable } from "./subscriptions-table";
 import {
   CreateSubscriptionDialog,
   CreateQuotationTemplateDialog,
@@ -22,20 +19,6 @@ interface PageProps {
     planId?: string;
     page?: string;
   }>;
-}
-
-interface SubscriptionRow {
-  id: string;
-  number: string;
-  customerId: string;
-  customer: { name: string; email: string };
-  plan: { name: string };
-  status: SubscriptionStatus;
-  pausedAt: Date | null;
-  startDate: Date;
-  expiryDate: Date;
-  createdAt: Date;
-  _count: { lines: number };
 }
 
 export default async function SubscriptionsPage({ searchParams }: PageProps) {
@@ -65,64 +48,6 @@ export default async function SubscriptionsPage({ searchParams }: PageProps) {
       planService.listPlans(session, { pageSize: 100, isActive: true }),
       subService.listQuotationTemplates(session, { pageSize: 100, isActive: true }),
     ]);
-
-  const columns: ColumnDef<SubscriptionRow>[] = [
-    {
-      header: "Number",
-      accessorKey: "number",
-      cell: (row) => (
-        <Link
-          href={`/admin/subscriptions/${row.id}`}
-          className="font-mono font-bold text-primary hover:underline text-sm"
-        >
-          {row.number}
-        </Link>
-      ),
-    },
-    {
-      header: "Customer",
-      accessorKey: "customer.name",
-      cell: (row) => (
-        <div>
-          <div className="font-semibold text-foreground text-sm">{row.customer.name}</div>
-          <div className="text-xs text-muted-foreground">{row.customer.email}</div>
-        </div>
-      ),
-    },
-    {
-      header: "Plan",
-      accessorKey: "plan.name",
-      cell: (row) => <span className="text-sm font-medium">{row.plan.name}</span>,
-    },
-    {
-      header: "Status",
-      accessorKey: "status",
-      cell: (row) => (
-        <StatusBadge status={row.status} isPaused={row.pausedAt !== null} />
-      ),
-    },
-    {
-      header: "Dates",
-      accessorKey: "startDate",
-      cell: (row) => (
-        <div className="text-xs space-y-0.5">
-          <div>Start: {formatDate(row.startDate)}</div>
-          <div className="text-muted-foreground">
-            Expiry: {formatDate(row.expiryDate)}
-          </div>
-        </div>
-      ),
-    },
-    {
-      header: "Items",
-      accessorKey: "_count.lines",
-      cell: (row) => (
-        <span className="text-xs text-muted-foreground">
-          {row._count.lines} {row._count.lines === 1 ? "line" : "lines"}
-        </span>
-      ),
-    },
-  ];
 
   return (
     <div className="space-y-6">
@@ -158,14 +83,11 @@ export default async function SubscriptionsPage({ searchParams }: PageProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <DataTable
-            columns={columns}
+          <SubscriptionsTable
             data={subscriptionsResult.items}
             total={subscriptionsResult.total}
             page={subscriptionsResult.page}
             pageSize={subscriptionsResult.pageSize}
-            searchPlaceholder="Search by SUB- number or customer..."
-            emptyMessage="No subscriptions found. Create your first subscription or quotation."
           />
         </CardContent>
       </Card>

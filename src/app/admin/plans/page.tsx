@@ -1,11 +1,9 @@
 import { requireSession } from "@/server/lib/session";
-import { Role, BillingPeriod } from "@/generated/prisma/enums";
+import { Role } from "@/generated/prisma/enums";
 import * as planService from "@/server/modules/plans/service";
 import * as catalogService from "@/server/modules/catalog/service";
-import { DataTable, type ColumnDef } from "@/components/ui/data-table";
-import { Badge } from "@/components/ui/badge";
-import { formatINR } from "@/lib/money";
-import { AddPlanDialog, DeactivatePlanButton } from "./plan-dialogs";
+import { PlansTable } from "./plans-table";
+import { AddPlanDialog } from "./plan-dialogs";
 import {
   Card,
   CardHeader,
@@ -20,22 +18,6 @@ interface PageProps {
     search?: string;
     page?: string;
   }>;
-}
-
-interface PlanRow {
-  id: string;
-  name: string;
-  price: number;
-  billingPeriod: BillingPeriod;
-  minQty: number;
-  availableFrom: Date;
-  availableTo?: Date | null;
-  autoClose: boolean;
-  closable: boolean;
-  pausable: boolean;
-  renewable: boolean;
-  tax?: { name: string; rateBps: number } | null;
-  isActive: boolean;
 }
 
 export default async function PlansPage({ searchParams }: PageProps) {
@@ -55,109 +37,6 @@ export default async function PlansPage({ searchParams }: PageProps) {
     }),
     catalogService.listTaxes(session, { pageSize: 100, isActive: true }),
   ]);
-
-  const columns: ColumnDef<PlanRow>[] = [
-    {
-      header: "Plan Name",
-      accessorKey: "name",
-      cell: (row) => (
-        <div>
-          <span className="font-semibold text-foreground text-sm">{row.name}</span>
-          <div className="text-xs text-muted-foreground">
-            Min Qty: {row.minQty}
-          </div>
-        </div>
-      ),
-    },
-    {
-      header: "Billing Period",
-      accessorKey: "billingPeriod",
-      cell: (row) => (
-        <Badge variant="outline" className="text-xs font-mono uppercase">
-          {row.billingPeriod}
-        </Badge>
-      ),
-    },
-    {
-      header: "Recurring Fee",
-      accessorKey: "price",
-      cell: (row) => (
-        <span className="font-semibold text-foreground text-sm">
-          {formatINR(row.price)}
-        </span>
-      ),
-    },
-    {
-      header: "Availability Window",
-      cell: (row) => (
-        <div className="text-xs text-muted-foreground">
-          <span>{new Date(row.availableFrom).toLocaleDateString()}</span>
-          {" → "}
-          <span>
-            {row.availableTo ? new Date(row.availableTo).toLocaleDateString() : "Open-ended"}
-          </span>
-        </div>
-      ),
-    },
-    {
-      header: "Lifecycle Flags",
-      cell: (row) => (
-        <div className="flex flex-wrap gap-1 max-w-xs">
-          {row.autoClose && (
-            <Badge variant="secondary" className="text-[10px] py-0 px-1.5 font-normal">
-              autoClose
-            </Badge>
-          )}
-          {row.closable && (
-            <Badge variant="secondary" className="text-[10px] py-0 px-1.5 font-normal">
-              closable
-            </Badge>
-          )}
-          {row.pausable && (
-            <Badge variant="secondary" className="text-[10px] py-0 px-1.5 font-normal">
-              pausable
-            </Badge>
-          )}
-          {row.renewable && (
-            <Badge variant="secondary" className="text-[10px] py-0 px-1.5 font-normal">
-              renewable
-            </Badge>
-          )}
-          {!row.autoClose && !row.closable && !row.pausable && !row.renewable && (
-            <span className="text-xs text-muted-foreground italic">None</span>
-          )}
-        </div>
-      ),
-    },
-    {
-      header: "Tax",
-      cell: (row) => (
-        <span className="text-xs text-muted-foreground">
-          {row.tax ? `${row.tax.name} (${(row.tax.rateBps / 100).toFixed(2)}%)` : "Untaxed"}
-        </span>
-      ),
-    },
-    {
-      header: "Status",
-      accessorKey: "isActive",
-      cell: (row) => (
-        <Badge variant={row.isActive ? "outline" : "destructive"} className="text-xs">
-          {row.isActive ? "Active" : "Inactive"}
-        </Badge>
-      ),
-    },
-    ...(isAdmin
-      ? [
-          {
-            header: "Actions",
-            cell: (row: PlanRow) => (
-              <DeactivatePlanButton id={row.id} isActive={row.isActive} />
-            ),
-            className: "text-right",
-          },
-        ]
-      : []),
-  ];
 
   return (
     <div className="space-y-6">
@@ -224,16 +103,13 @@ export default async function PlansPage({ searchParams }: PageProps) {
         </CardContent>
       </Card>
 
-      <DataTable
-        columns={columns}
+      <PlansTable
         data={plansResult.items}
         total={plansResult.total}
         page={plansResult.page}
         pageSize={plansResult.pageSize}
-        searchPlaceholder="Search plans by name..."
-        emptyMessage="No plans configured."
+        isAdmin={isAdmin}
       />
     </div>
   );
 }
-
