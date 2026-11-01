@@ -61,168 +61,381 @@ The table below maps each requirement area from the domain specification to its 
 
 ## Architecture
 
-BrightLoop adheres to a strict four-layer architecture enforcing complete separation of presentation, business logic, persistence, and storage.
+Request flow is a single vertical chain: entry points, services, repositories, then Postgres via Prisma.
 
 ```mermaid
-flowchart TD
-    subgraph PresentationLayer["Presentation Layer (src/app)"]
-        UI_Admin["Admin UI Routes (/admin/*)"]
-        UI_Portal["Customer Portal Routes (/portal/*)"]
-        UI_Auth["Authentication Routes (/login, /signup, etc.)"]
-        API_Cron["Cron Route Handlers (/api/cron/*)"]
+%%{init: {"theme": "neutral"}}%%
+flowchart TB
+    subgraph entry [Entry points]
+        admin[admin routes]
+        portal[portal routes]
+        authRoutes[auth routes]
+        cron["cron /api/cron/billing"]
     end
 
-    subgraph ServiceLayer["Service Layer (src/server/modules/*/service.ts)"]
-        AuthSvc["Auth Service"]
-        SubSvc["Subscription Service"]
-        BillSvc["Billing Service"]
-        InvSvc["Invoice Service"]
-        DashSvc["Dashboard Service"]
-        PortalSvc["Portal Service"]
+    subgraph services [Services]
+        svcAuth[auth]
+        svcBilling[billing]
+        svcCatalog[catalog]
+        svcCustomers[customers]
+        svcDashboard[dashboard]
+        svcDiscounts[discounts]
+        svcHealth[health]
+        svcInvoices[invoices]
+        svcPlans[plans]
+        svcPortal[portal]
+        svcStaff[staff]
+        svcSubscriptions[subscriptions]
     end
 
-    subgraph RepoLayer["Repository Layer (src/server/modules/*/repo.ts)"]
-        AuthRepo["Auth Repo"]
-        SubRepo["Subscription Repo"]
-        BillRepo["Billing Repo"]
-        InvRepo["Invoice Repo"]
-        DashRepo["Dashboard Repo"]
-        PortalRepo["Portal Repo"]
+    subgraph repos [Repositories]
+        oneRepo[one repo per module]
     end
 
-    subgraph StorageLayer["Data & Persistence Layer"]
-        Prisma["Prisma ORM 7 (pg adapter)"]
-        Postgres[("PostgreSQL 17 (Docker)")]
+    subgraph storage [Postgres via Prisma]
+        pg[(PostgreSQL)]
     end
 
-    UI_Admin -->|Server Actions / Data Fetch| ServiceLayer
-    UI_Portal -->|Server Actions / Data Fetch| ServiceLayer
-    UI_Auth -->|Server Actions| AuthSvc
-    API_Cron -->|CRON_SECRET Authorized| BillSvc
-
-    ServiceLayer -->|Zod Validated, Role Checked| RepoLayer
-    RepoLayer -->|Isolated Prisma Queries & Raw SQL| Prisma
-    Prisma --> Postgres
-
-    classDef presentation fill:#f8fafc,stroke:#94a3b8,stroke-width:1px;
-    classDef service fill:#e0f2fe,stroke:#0284c7,stroke-width:1px;
-    classDef repo fill:#fef3c7,stroke:#d97706,stroke-width:1px;
-    classDef storage fill:#f1f5f9,stroke:#475569,stroke-width:2px;
-
-    class PresentationLayer presentation;
-    class ServiceLayer service;
-    class RepoLayer repo;
-    class StorageLayer storage;
+    entry -->|server actions| services
+    cron -->|CRON_SECRET| services
+    services -->|validated + authorized| repos
+    repos -->|Prisma / raw SQL| storage
 ```
 
-### Architectural Principles and Invariants
+- Routes in `src/app` are thin: UI, wiring, and server-action entry points only.
+- Only repository files touch Prisma or raw SQL.
+- Services check role and scope every customer query by `customerId`.
 
-1. **Thin Routes & Views**: Files in `src/app` contain only UI layout, component wiring, client-side interactions, and Next.js Server Action entry points. They never import Prisma, never contain raw SQL, and never execute business calculations.
-2. **Server-Only Enforcement**: Every server module and repository file begins with `import "server-only"`. Any inadvertent import of server logic into client components triggers an immediate compile-time failure.
-3. **Prisma Isolation**: Only repository files (`src/server/modules/<name>/repo.ts`) and `prisma/seed.ts` import the Prisma client instance. Neither services nor routes touch Prisma directly.
-4. **Mandatory Service-Layer Authorization**: Every exported service function takes the session context (`Session | null`) as its initial argument and executes `requireRole(session, ...roles)` prior to performing any operation. Customer-facing queries enforce strict ownership filtering scoped by `session.user.customerId`.
-5. **Strict Server-Side Validation**: All inputs across mutations and service boundaries are parsed through Zod schemas before being processed.
+Catalog covers products, variants, and taxes. Subscriptions also owns quotation templates. Payments live in the invoices module. There is no separate `products`, `taxes`, `templates`, or `payments` module. Health is used by `/api/health`, not shown as an extra entry box.
 
 ---
 
 ## Data Model
 
-The relational schema models identity, product cataloging, subscription state machines, snapshot-backed invoicing, and transactional ledger accounting.
+Split by area. Cardinality matches `prisma/schema.prisma`, including optional foreign keys.
+
+### A. Identity and customers
+
+Users, optional customer accounts, and hashed reset tokens.
 
 ```mermaid
+%%{init: {"theme": "neutral"}}%%
 erDiagram
-    User ||--o| Customer : "links to"
-    User ||--o{ PasswordResetToken : "owns"
-    User ||--o{ LoginAttempt : "logged for"
-    Customer ||--o{ Subscription : "holds"
-    Customer ||--o{ Invoice : "billed"
+    User |o--o| Customer : links
+    User ||--o{ PasswordResetToken : owns
 
-    Tax ||--o{ Product : "rates"
-    Tax ||--o{ Plan : "taxes"
-
-    Product ||--o{ ProductVariant : "has"
-    Product ||--o{ SubscriptionLine : "instantiates"
-    Product ||--o{ InvoiceLine : "snapshots"
-    Product ||--o{ DiscountProduct : "scoped in"
-
-    Plan ||--o{ Subscription : "governs"
-    Plan ||--o{ QuotationTemplate : "configures"
-
-    QuotationTemplate ||--o{ TemplateLine : "defines"
-    QuotationTemplate ||--o{ Subscription : "presets"
-
-    Subscription ||--o{ SubscriptionLine : "contains"
-    Subscription ||--o{ Invoice : "generates"
-    Subscription ||--o{ StatusHistory : "audited"
-
-    Invoice ||--o{ InvoiceLine : "snapshots"
-    Invoice ||--o{ Payment : "receives"
-    Invoice ||--o| DiscountApplication : "records"
-    Invoice ||--o{ StatusHistory : "audited"
-
-    Discount ||--o{ DiscountProduct : "matches"
-    Discount ||--o{ DiscountApplication : "tracked by"
-    Discount ||--o{ InvoiceLine : "applied on"
-
-    BillingRun ||--o{ Invoice : "batches"
+    User {
+        string id PK
+        string email
+        enum role
+        int sessionVersion
+    }
+    PasswordResetToken {
+        string id PK
+        string userId FK
+        datetime expiresAt
+        datetime usedAt
+    }
+    Customer {
+        string id PK
+        string userId FK
+        string name
+        string email
+        boolean isActive
+    }
+    LoginAttempt {
+        string id PK
+        string email
+        string ip
+        boolean success
+    }
 ```
 
-### Key Integrity Constraints and Indexes
+LoginAttempt is keyed by email and IP, no foreign key.
 
-- **Idempotency Constraint**: `Invoice(subscriptionId, periodStart)` has a strict compound `UNIQUE` constraint, preventing duplicate invoice generation for identical billing cycles.
-- **Variant Uniqueness**: `ProductVariant(productId, attribute, value)` enforces unique attribute sets per product.
-- **Sequential Defaults**: PostgreSQL sequences `subscription_number_seq` and `invoice_number_seq` populate `SUB-000000` and `INV-000000` identifiers natively via database defaults.
-- **Compound Query Indexes**: `Invoice(status, dueDate)` powers overdue derived queries; `Invoice(customerId, status)` accelerates customer portal queries; `Subscription(status, nextPeriodStart)` optimizes candidate selection during billing runs.
-- **Audit Logging**: `StatusHistory(entity, entityId)` tracks state transitions with timestamps and user references.
+### B. Catalog, plans and subscriptions
+
+Taxes, catalog, plans, quotation templates, and subscription lines.
+
+```mermaid
+%%{init: {"theme": "neutral"}}%%
+erDiagram
+    Tax |o--o{ Product : rates
+    Tax |o--o{ Plan : taxes
+    Product ||--o{ ProductVariant : has
+    Product ||--o{ TemplateLine : appears on
+    Product ||--o{ SubscriptionLine : appears on
+    ProductVariant |o--o{ TemplateLine : optional
+    ProductVariant |o--o{ SubscriptionLine : optional
+    Plan ||--o{ QuotationTemplate : configures
+    Plan ||--o{ Subscription : governs
+    QuotationTemplate ||--o{ TemplateLine : defines
+    QuotationTemplate |o--o{ Subscription : presets
+    Customer ||--o{ Subscription : holds
+    Subscription ||--o{ SubscriptionLine : contains
+
+    Tax {
+        string id PK
+        string name
+        int rateBps
+        boolean isActive
+    }
+    Product {
+        string id PK
+        string taxId FK
+        string name
+        int salesPrice
+    }
+    ProductVariant {
+        string id PK
+        string productId FK
+        string attribute
+        int extraPrice
+    }
+    Plan {
+        string id PK
+        string taxId FK
+        string name
+        int price
+        enum billingPeriod
+    }
+    QuotationTemplate {
+        string id PK
+        string planId FK
+        string name
+        int validityDays
+    }
+    TemplateLine {
+        string id PK
+        string templateId FK
+        string productId FK
+        string variantId FK
+        int qty
+    }
+    Customer {
+        string id PK
+        string name
+        string email
+    }
+    Subscription {
+        string id PK
+        string customerId FK
+        string planId FK
+        string templateId FK
+        enum status
+        date startDate
+        date expiryDate
+    }
+    SubscriptionLine {
+        string id PK
+        string subscriptionId FK
+        string productId FK
+        string variantId FK
+        int unitPrice
+        int amount
+    }
+```
+
+### C. Billing, discounts and payments
+
+Invoices, discount usage, and payments. Billing runs optionally batch invoices.
+
+```mermaid
+%%{init: {"theme": "neutral"}}%%
+erDiagram
+    Customer ||--o{ Invoice : billed
+    Subscription ||--o{ Invoice : generates
+    BillingRun |o--o{ Invoice : batches
+    Invoice ||--o{ InvoiceLine : contains
+    Invoice ||--o{ Payment : receives
+    Invoice ||--o{ PaymentAttempt : attempts
+    Invoice ||--o| DiscountApplication : records
+    Discount ||--o{ DiscountProduct : scopes
+    Discount ||--o{ DiscountApplication : uses
+    Discount |o--o{ InvoiceLine : optional
+    Product ||--o{ DiscountProduct : scoped in
+    Product |o--o{ InvoiceLine : snapshots
+    PaymentAttempt |o--o| Payment : optional
+
+    Subscription {
+        string id PK
+        string customerId FK
+        enum status
+    }
+    Customer {
+        string id PK
+        string name
+    }
+    BillingRun {
+        string id PK
+        date asOfDate
+        int created
+        int skipped
+        int failed
+    }
+    Invoice {
+        string id PK
+        string subscriptionId FK
+        string customerId FK
+        string billingRunId FK
+        enum status
+        date periodStart
+        int total
+        int amountPaid
+    }
+    InvoiceLine {
+        string id PK
+        string invoiceId FK
+        string productId FK
+        string discountId FK
+        enum kind
+        int amount
+    }
+    Payment {
+        string id PK
+        string invoiceId FK
+        string attemptId FK
+        int amount
+        datetime voidedAt
+    }
+    Discount {
+        string id PK
+        enum type
+        int value
+        int usageLimit
+        int usedCount
+    }
+    DiscountProduct {
+        string discountId PK
+        string productId PK
+    }
+    DiscountApplication {
+        string id PK
+        string discountId FK
+        string invoiceId FK
+        int amount
+    }
+    Product {
+        string id PK
+        string name
+    }
+    PaymentAttempt {
+        string id PK
+        string invoiceId FK
+        enum status
+        string razorpayOrderId
+    }
+    WebhookEvent {
+        string id PK
+        string eventId
+        string type
+        datetime processedAt
+    }
+```
+
+PaymentAttempt and WebhookEvent exist in the schema for the unfinished Razorpay flow and are not wired up yet. WebhookEvent has no foreign keys.
+
+### StatusHistory
+
+Polymorphic audit rows, not drawn as relations on the diagrams above.
+
+```mermaid
+%%{init: {"theme": "neutral"}}%%
+erDiagram
+    StatusHistory {
+        string id PK
+        enum entity
+        string entityId
+        string fromStatus
+        string toStatus
+        string byUserId
+    }
+```
+
+StatusHistory is not drawn as relations because it references subscriptions and invoices polymorphically (`entity` + `entityId`), with no foreign keys. `AuditLog` exists in the schema and is also omitted here.
+
+### Key constraints
+
+- `UNIQUE(subscriptionId, periodStart)` on Invoice (billing idempotency).
+- Sequence-backed numbers: `SUB-000001` and `INV-000001` from `subscription_number_seq` and `invoice_number_seq` (gaps allowed).
+- `UNIQUE(productId, attribute, value)` on ProductVariant.
+- CHECK constraints from the init migration:
+  - Discount: `"usedCount" >= 0 AND "usedCount" <= "usageLimit"`
+  - Discount: `"value" >= 0`
+  - Invoice: `"amountPaid" >= 0 AND "amountPaid" <= "total"`
+  - Plan: `"minQty" >= 1`
+  - Payment: `"amount" > 0`
 
 ---
 
 ## State Machines
 
-### Subscription Lifecycle State Machine
+### Subscription lifecycle
+
+Statuses stored on `Subscription.status`, plus PAUSED as ACTIVE with `pausedAt` set.
 
 ```mermaid
+%%{init: {"theme": "neutral"}}%%
 stateDiagram-v2
-    [*] --> DRAFT : Admin / Staff creates
-    DRAFT --> DRAFT : Update lines / details
-    DRAFT --> QUOTATION : Staff sends quotation (quotationSentAt set)
-    DRAFT --> [*] : Staff deletes draft
-    
-    QUOTATION --> CONFIRMED : Customer accepts online OR Staff confirms
-    QUOTATION --> CLOSED : validUntil expires without acceptance
-
-    CONFIRMED --> ACTIVE : Billing housekeeping at startDate arrives
-    
-    ACTIVE --> PAUSED : Staff pauses (pausedAt set, if plan.pausable)
-    PAUSED --> ACTIVE : Staff resumes (nextPeriodStart aligned to next cycle)
-    
-    ACTIVE --> ACTIVE : Staff renews (expiryDate extended, if plan.renewable)
-    ACTIVE --> CLOSED : Staff closes (reason required, if plan.closable)
-    ACTIVE --> CLOSED : Housekeeping auto-closes past expiry (if plan.autoClose)
-    
+    [*] --> DRAFT : create
+    DRAFT --> QUOTATION : send quotation
+    DRAFT --> [*] : delete draft
+    QUOTATION --> CONFIRMED : accept or confirm
+    QUOTATION --> CLOSED : close
+    CONFIRMED --> ACTIVE : start date reached
+    ACTIVE --> PAUSED : pause
+    PAUSED --> ACTIVE : resume
+    ACTIVE --> ACTIVE : renew
+    ACTIVE --> CLOSED : close
+    PAUSED --> CLOSED : close
+    ACTIVE --> CLOSED : auto-close
     CLOSED --> [*]
 ```
 
-### Invoice Lifecycle State Machine
+PAUSED is not a database enum value. Quotation expiry does not auto-close; `validUntil` only blocks confirm. Housekeeping activate requires `startDate <= asOfDate`; staff `ACTIVATE` does not.
+
+| From | To | Triggered by | Guard |
+| :--- | :--- | :--- | :--- |
+| — | DRAFT | Admin/staff create blank or from template | — |
+| DRAFT | QUOTATION | Staff send quotation | Status is DRAFT |
+| DRAFT | deleted | Staff delete draft | Status is DRAFT |
+| QUOTATION | CONFIRMED | Customer accept or staff confirm | Before `validUntil` when set |
+| QUOTATION | CLOSED | Staff close | `closeReason` required |
+| CONFIRMED | ACTIVE | Billing housekeeping, or staff activate | Housekeeping: `startDate` reached |
+| ACTIVE | PAUSED | Staff pause | `plan.pausable`; not already paused |
+| PAUSED | ACTIVE | Staff resume | `plan.pausable`; `pausedAt` set |
+| ACTIVE | ACTIVE | Staff renew | `plan.renewable` |
+| ACTIVE | CLOSED | Staff close | `closeReason`; `plan.closable` if before expiry |
+| PAUSED | CLOSED | Staff close | Same as ACTIVE close; DB status is still ACTIVE |
+| ACTIVE | CLOSED | Billing housekeeping auto-close | `plan.autoClose`; `expiryDate <= asOfDate` |
+
+### Invoice lifecycle
+
+Draft invoices are created only by the billing run. Overdue is derived, never stored.
 
 ```mermaid
+%%{init: {"theme": "neutral"}}%%
 stateDiagram-v2
-    [*] --> DRAFT : Billing run or manual creation
-    DRAFT --> DRAFT : Recalculate / edit lines
-    
-    DRAFT --> CONFIRMED : Staff confirms (Lines freeze, discount usage atomically claimed)
-    DRAFT --> CANCELLED : Staff cancels
-    
-    CONFIRMED --> PAID : Manual payment recorded (amountPaid == total)
-    CONFIRMED --> CANCELLED : Staff cancels (Releases claimed discount atomically)
-    
-    PAID --> CONFIRMED : Admin voids payment with note (amountPaid < total)
-    
+    [*] --> DRAFT : billing run
+    DRAFT --> CONFIRMED : confirm
+    DRAFT --> CANCELLED : cancel
+    CONFIRMED --> PAID : fully paid
+    CONFIRMED --> CANCELLED : cancel
+    PAID --> CONFIRMED : void payment
     CANCELLED --> [*]
     PAID --> [*]
 ```
 
-*Note on Overdue State: "Overdue" is not a stored database status. It is a dynamically derived property evaluated at query time when `status == CONFIRMED && dueDate < today && amountPaid < total`.*
+Cancel from CONFIRMED releases discount usage (`usedCount` decrement and `DiscountApplication` delete). Cancel is blocked if any non-voided payment exists. Voiding a payment is ADMIN-only and moves PAID back to CONFIRMED when remaining `amountPaid < total`. Partial payments stay CONFIRMED. Failed confirm with an unusable discount stays DRAFT after totals are recalculated.
+
+| From | To | Triggered by | Guard |
+| :--- | :--- | :--- | :--- |
+| — | DRAFT | Billing run for an Active, non-paused period | `UNIQUE(subscriptionId, periodStart)` |
+| DRAFT | CONFIRMED | Staff/admin confirm | Discount claim must succeed or discount is stripped first |
+| DRAFT | CANCELLED | Staff/admin cancel | No non-voided payments |
+| CONFIRMED | PAID | Staff/admin record payment | Sum of payments `>= total` |
+| CONFIRMED | CANCELLED | Staff/admin cancel | No non-voided payments; releases discount usage |
+| PAID | CONFIRMED | Admin void payment | Remaining `amountPaid < total` |
 
 ---
 
